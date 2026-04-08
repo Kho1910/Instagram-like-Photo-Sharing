@@ -1,1 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
 
+datasource db {
+  provider = "mysql"
+}
+
+model bookmarks {
+  user_id    Int       @db.UnsignedInt
+  photo_id   Int       @db.UnsignedInt
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  photos     photos    @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([user_id, photo_id])
+  @@index([photo_id], map: "photo_id")
+}
+
+model comments {
+  id            Int             @id @default(autoincrement()) @db.UnsignedInt
+  user_id       Int             @db.UnsignedInt
+  photo_id      Int             @db.UnsignedInt
+  content       String          @db.Text
+  created_at    DateTime?       @default(now()) @db.Timestamp(0)
+  users         users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  photos        photos          @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  notifications notifications[]
+
+  @@index([photo_id, created_at], map: "idx_comments_photo_time")
+  @@index([user_id], map: "user_id")
+}
+
+model follows {
+  follower_id                                                                                  Int       @db.UnsignedInt
+  following_id                                                                                 Int       @db.UnsignedInt
+  created_at                                                                                   DateTime? @default(now()) @db.Timestamp(0)
+  follower                                                                                     users @relation("follows_follower", fields: [follower_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  following                                                                                    users @relation("follows_following", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([follower_id, following_id])
+  @@index([following_id], map: "idx_following_id")
+}
+
+model likes {
+  user_id    Int       @db.UnsignedInt
+  photo_id   Int       @db.UnsignedInt
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  photos     photos    @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([user_id, photo_id])
+  @@index([photo_id], map: "idx_likes_photo_id")
+}
+
+model notifications {
+  id                                                                                                       Int                @id @default(autoincrement()) @db.UnsignedInt
+  recipient_id                                                                                             Int                @db.UnsignedInt
+  sender_id                                                                                                Int                @db.UnsignedInt
+  type                                                                                                     notifications_type
+  photo_id                                                                                                 Int?               @db.UnsignedInt
+  comment_id                                                                                               Int?               @db.UnsignedInt
+  is_read                                                                                                  Boolean?           @default(false)
+  created_at                                                                                               DateTime?          @default(now()) @db.Timestamp(0)
+  recipient                                                                                                users @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  sender                                                                                                   users @relation("notifications_sender", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  photos                                                                                                   photos?            @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
+  comments                                                                                                 comments?          @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "4")
+
+  @@index([comment_id], map: "comment_id")
+  @@index([recipient_id, is_read, created_at], map: "idx_notifications_recipient_read")
+  @@index([photo_id], map: "photo_id")
+  @@index([sender_id], map: "sender_id")
+}
+
+model photos {
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id         Int                     @db.UnsignedInt
+  image_url       String                  @db.VarChar(500)
+  thumb_url       String                  @db.VarChar(500)
+  resolution_tier photos_resolution_tier? @default(original)
+  status          photos_status?          @default(processing)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+  bookmarks       bookmarks[]
+  comments        comments[]
+  likes           likes[]
+  notifications   notifications[]
+  users           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "idx_photos_created_at")
+  @@index([user_id], map: "idx_photos_user_id")
+}
+
+model users {
+  id                                                                                                               Int             @id @default(autoincrement()) @db.UnsignedInt
+  username                                                                                                         String          @unique(map: "username") @db.VarChar(50)
+  full_name                                                                                                        String?         @db.VarChar(100)
+  email                                                                                                            String          @unique(map: "email") @db.VarChar(100)
+  password_hash                                                                                                    String          @db.VarChar(255)
+  bio                                                                                                              String?         @db.Text
+  avatar_url                                                                                                       String?         @db.VarChar(255)
+  created_at                                                                                                       DateTime?       @default(now()) @db.Timestamp(0)
+  bookmarks                                                                                                        bookmarks[]
+  comments                                                                                                         comments[]
+  followedBy                                                                                                       follows[]       @relation("follows_following")
+  following                                                                                                        follows[]       @relation("follows_follower")
+  likes                                                                                                            likes[]
+  notificationsReceived                                                                                            notifications[] @relation("notifications_recipient")
+  notificationsSent                                                                                                notifications[] @relation("notifications_sender")
+  photos                                                                                                           photos[]
+
+  @@index([full_name], map: "idx_full_name")
+}
+
+enum notifications_type {
+  like
+  comment
+  follow
+}
+
+enum photos_resolution_tier {
+  original
+  medium
+  small
+}
+
+enum photos_status {
+  processing
+  done
+  error
+}
