@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  engineType = "library"
+
 }
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model bookmarks {
@@ -109,7 +111,8 @@ model users {
   notificationsReceived                                                                                            notifications[] @relation("notifications_recipient")
   notificationsSent                                                                                                notifications[] @relation("notifications_sender")
   photos                                                                                                           photos[]
-
+  otp_code                                                                                                         String?
+  otp_expires_at                                                                                                   DateTime?
   @@index([full_name], map: "idx_full_name")
 }
 
