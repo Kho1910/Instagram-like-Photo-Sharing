@@ -18,8 +18,8 @@ const getProfile = async (req, res) => {
 
 const follow = async (req, res) => {
     try {
-        const followerId = req.user.id;
-        const followingId = req.params.id;
+        const followerId = parseInt(req.user.id);
+        const followingId = parseInt(req.params.id);
         await userService.follow(followerId, followingId);
 
         return res.status(204);
@@ -33,8 +33,8 @@ const follow = async (req, res) => {
 
 const unfollow = async (req, res) => {
     try {
-        const followerId = req.user.id;
-        const followingId = req.params.id;
+        const followerId = parseInt(req.user.id);
+        const followingId = parseInt(req.params.id);
         await userService.unfollow(followerId, followingId);
 
         return res.status(204);
@@ -48,7 +48,7 @@ const unfollow = async (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = parseInt(req.user.id);
         const updatedProfile = await userService.updateProfile(userId, req.body);
 
         return res.status(200).json({
