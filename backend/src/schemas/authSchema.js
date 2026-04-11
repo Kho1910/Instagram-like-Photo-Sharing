@@ -3,7 +3,7 @@ const Joi = require('joi');
 const authSchema = {
     register: Joi.object({
         username: Joi.string()
-            .alphanum()               // Chỉ cho phép chữ và số (chống XSS cơ bản)
+            .alphanum()               // Chỉ cho phép chữ và số 
             .min(3).max(30)           // Giới hạn độ dài để tránh làm tràn DB hoặc UI
             .required()
             .messages({ 'string.min': 'Username phải có ít nhất 3 ký tự' }),
@@ -18,7 +18,7 @@ const authSchema = {
             .required(),
 
         full_name: Joi.string()
-            .max(100)                 // Tránh gửi chuỗi quá dài (DoS Database)
+            .max(100)                 // Tránh gửi chuỗi quá dài 
             .required()
     }),
 
