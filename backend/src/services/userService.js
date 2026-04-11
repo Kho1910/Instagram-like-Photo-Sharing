@@ -75,6 +75,35 @@ class userService {
 
         return true;
     }
+
+    async updateProfile(userId, data) {
+        const { bio, full_name, avatar_url } = data;
+        const updateData = {};
+
+        if (bio !== undefined)
+	    updateData.bio = bio;
+        if (full_name !== undefined)
+	    updateData.full_name = full_name;
+        if (avatar_url !== undefined)
+	    updateData.avatar_url = avatar_url;
+
+        if (Object.keys(updateData).length === 0) {
+            throw new Error('Không có thông tin nào được cập nhật.');
+        }
+
+        const updatedUser = await prisma.users.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                username: true,
+                full_name: true,
+                bio: true,
+                avatar_url: true,
+            },
+        });
+
+        return updatedUser;
+    }
 }
 
 module.exports = new userService();
