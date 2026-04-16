@@ -21,7 +21,7 @@ class authService {
             }
         });
 
-        if (existingUser) throw new Error("Email này đã tồn tại!");
+        if (existingUser) throw new Error("Email hoặc username này đã tồn tại!");
 
         const hashPassword = await argon2.hash(data.password);
         return await prisma.users.create({
@@ -64,6 +64,7 @@ class authService {
         if (!user) {
             throw new Error("Email này chưa tồn tại!");
         }
+        
         const otp = crypto.randomInt(100000, 999999).toString();
 
         const expires = new Date(Date.now() + 10 * 60 * 1000);
