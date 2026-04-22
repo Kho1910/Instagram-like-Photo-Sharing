@@ -35,15 +35,15 @@ model users {
 model medias { // Các file như Ảnh, Video, Nhạc,...
   id              Int                     @id @default(autoincrement()) @db.UnsignedInt
   user_id         Int                     @db.UnsignedInt
-  posts_id        Int?                    @db.UnsignedInt
+  post_id        Int?                    @db.UnsignedInt
   resource_type   media_type
-  public_id       String                  @db.VarChar(500) // Lưu Cloudinary id
+  public_id       String                  @unique // Lưu Cloudinary id
   resolution_tier photos_resolution_tier? @default(original)
   status          media_status?          @default(processing)
   created_at      DateTime?               @default(now()) @db.Timestamp(0)
   
   user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  post           posts?                   @relation(fields: [posts_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post           posts?                   @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([created_at], map: "idx_medias_created_at")
   @@index([user_id], map: "idx_medias_user_id")
@@ -53,6 +53,8 @@ model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment s
   id              Int                     @id @default(autoincrement()) @db.UnsignedInt
   user_id         Int                     @db.UnsignedInt
 
+  title           String?
+  content         String?
   status          post_status?          @default(processing)
   created_at      DateTime?               @default(now()) @db.Timestamp(0)
   bookmarks       bookmarks[]
