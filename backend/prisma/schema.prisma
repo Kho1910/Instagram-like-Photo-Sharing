@@ -9,28 +9,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model users {
+  id                      Int             @id @default(autoincrement()) @db.UnsignedInt
+  username                String          @unique(map: "username") @db.VarChar(50)
+  full_name               String?         @db.VarChar(100)
+  email                   String          @unique(map: "email") @db.VarChar(100)
+  password_hash           String          @db.VarChar(255)
+  bio                     String?         @db.Text
+  avatar_url              String?         @db.VarChar(255)
+  created_at              DateTime?       @default(now()) @db.Timestamp(0)
+  bookmarks               bookmarks[]
+  comments                comments[]
+  followedBy              follows[]       @relation("follows_following")
+  following               follows[]       @relation("follows_follower")
+  likes                   likes[]
+  notificationsReceived   notifications[] @relation("notifications_recipient")
+  notificationsSent       notifications[] @relation("notifications_sender")
+  medias                  medias[]
+  posts                   posts[]
+  otp_code                String?
+  otp_expires_at          DateTime?
+  @@index([full_name], map: "idx_full_name")
+}
+
+model medias { // Các file như Ảnh, Video, Nhạc,...
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id         Int                     @db.UnsignedInt
+  posts_id        Int?                    @db.UnsignedInt
+  resource_type   media_type
+  public_id       String                  @db.VarChar(500) // Lưu Cloudinary id
+  resolution_tier photos_resolution_tier? @default(original)
+  status          media_status?          @default(processing)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+  
+  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post           posts?                   @relation(fields: [posts_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "idx_medias_created_at")
+  @@index([user_id], map: "idx_medias_user_id")
+}
+
+model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment sẽ cho cả bài đăng chứ không phải từng ảnh
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id         Int                     @db.UnsignedInt
+
+  status          post_status?          @default(processing)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+  bookmarks       bookmarks[]
+  comments        comments[]
+  likes           likes[]
+  notifications   notifications[]
+
+  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  medias         medias[]
+
+  @@index([created_at], map: "idx_photos_created_at")
+  @@index([user_id], map: "idx_photos_user_id")
+}
+
 model bookmarks {
   user_id    Int       @db.UnsignedInt
-  photo_id   Int       @db.UnsignedInt
+  post_id   Int       @db.UnsignedInt
   created_at DateTime? @default(now()) @db.Timestamp(0)
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  photos     photos    @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
-  @@id([user_id, photo_id])
-  @@index([photo_id], map: "photo_id")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post     posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([user_id, post_id])
+  @@index([post_id], map: "post_id")
 }
 
 model comments {
   id            Int             @id @default(autoincrement()) @db.UnsignedInt
   user_id       Int             @db.UnsignedInt
-  photo_id      Int             @db.UnsignedInt
+  post_id       Int              @db.UnsignedInt
   content       String          @db.Text
   created_at    DateTime?       @default(now()) @db.Timestamp(0)
   users         users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  photos        photos          @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post          posts             @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   notifications notifications[]
 
-  @@index([photo_id, created_at], map: "idx_comments_photo_time")
+  @@index([post_id, created_at], map: "idx_comments_photo_time")
   @@index([user_id], map: "user_id")
 }
 
@@ -46,14 +106,14 @@ model follows {
 }
 
 model likes {
-  user_id    Int       @db.UnsignedInt
-  photo_id   Int       @db.UnsignedInt
-  created_at DateTime? @default(now()) @db.Timestamp(0)
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  photos     photos    @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user_id     Int       @db.UnsignedInt
+  post_id     Int       @db.UnsignedInt
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post        posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
-  @@id([user_id, photo_id])
-  @@index([photo_id], map: "idx_likes_photo_id")
+  @@id([user_id, post_id])
+  @@index([post_id], map: "idx_likes_photo_id")
 }
 
 model notifications {
@@ -67,7 +127,7 @@ model notifications {
   created_at                                                                                               DateTime?          @default(now()) @db.Timestamp(0)
   recipient                                                                                                users @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   sender                                                                                                   users @relation("notifications_sender", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  photos                                                                                                   photos?            @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
+  post                                                                                                   posts?            @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
   comments                                                                                                 comments?          @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "4")
 
   @@index([comment_id], map: "comment_id")
@@ -76,44 +136,8 @@ model notifications {
   @@index([sender_id], map: "sender_id")
 }
 
-model photos {
-  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
-  user_id         Int                     @db.UnsignedInt
-  image_url       String                  @db.VarChar(500)
-  thumb_url       String                  @db.VarChar(500)
-  resolution_tier photos_resolution_tier? @default(original)
-  status          photos_status?          @default(processing)
-  created_at      DateTime?               @default(now()) @db.Timestamp(0)
-  bookmarks       bookmarks[]
-  comments        comments[]
-  likes           likes[]
-  notifications   notifications[]
-  users           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-
-  @@index([created_at], map: "idx_photos_created_at")
-  @@index([user_id], map: "idx_photos_user_id")
-}
-
-model users {
-  id                                                                                                               Int             @id @default(autoincrement()) @db.UnsignedInt
-  username                                                                                                         String          @unique(map: "username") @db.VarChar(50)
-  full_name                                                                                                        String?         @db.VarChar(100)
-  email                                                                                                            String          @unique(map: "email") @db.VarChar(100)
-  password_hash                                                                                                    String          @db.VarChar(255)
-  bio                                                                                                              String?         @db.Text
-  avatar_url                                                                                                       String?         @db.VarChar(255)
-  created_at                                                                                                       DateTime?       @default(now()) @db.Timestamp(0)
-  bookmarks                                                                                                        bookmarks[]
-  comments                                                                                                         comments[]
-  followedBy                                                                                                       follows[]       @relation("follows_following")
-  following                                                                                                        follows[]       @relation("follows_follower")
-  likes                                                                                                            likes[]
-  notificationsReceived                                                                                            notifications[] @relation("notifications_recipient")
-  notificationsSent                                                                                                notifications[] @relation("notifications_sender")
-  photos                                                                                                           photos[]
-  otp_code                                                                                                         String?
-  otp_expires_at                                                                                                   DateTime?
-  @@index([full_name], map: "idx_full_name")
+enum media_type {
+  image
 }
 
 enum notifications_type {
@@ -128,7 +152,13 @@ enum photos_resolution_tier {
   small
 }
 
-enum photos_status {
+enum media_status {
+  processing
+  done
+  error
+}
+
+enum post_status {
   processing
   done
   error
