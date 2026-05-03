@@ -8,3 +8,4 @@ router.delete('/:id/follow', userController.unfollow);
 router.put('/profile', userController.updateProfile);
 
 module.exports = router;
+

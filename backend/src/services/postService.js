@@ -1,4 +1,4 @@
-const prisma = require('../config/db')
+﻿const prisma = require('../config/db')
 const cloudinary = require('../config/cloudnary')
 
 const createPost = async ( userId, postData ) => {
@@ -11,16 +11,15 @@ const createPost = async ( userId, postData ) => {
         where: {
             id: { in: postData.mediaIds || [] },
             user_id: userId,
-            post_id: null // Tránh 1 media thuộc cùng nhiều post
+            post_id: null
         }
     });
 
-    if (existedMediaCount !== postData.mediaIds.length) {
+    if (existedMediaCount !== (postData.mediaIds || []).length) {
         throw new Error ('Danh sách media không hợp lệ');
     }
 
     const newPost = await prisma.$transaction(async (tx) => {
-        // Tạo post
         const post = await tx.posts.create({
             data: {
                 title: postData.title,
@@ -29,21 +28,20 @@ const createPost = async ( userId, postData ) => {
             }
         });
 
-        // Cập nhật các media
         if (postData.mediaIds && postData.mediaIds.length > 0) {
             await tx.medias.updateMany({
                 where: {
                     id: { in: postData.mediaIds },
                 },
                 data: {
-                    post_id: post.id // Gán ID vừa tạo
+                    post_id: post.id
                 }
             });
         }
 
         return await tx.posts.findUnique({
             where: { id: post.id },
-            include: { medias: { select: { public_id: true } } }
+            include: { medias: true, user: true }
         });
     });
 
@@ -63,11 +61,7 @@ const deletePost = async ( userId, postId ) => {
             user_id: userId
         },
         include: {
-            medias: {
-                select: {
-                    public_id: true
-                }
-            }
+            medias: { select: { public_id: true } }
         }
     })
 
@@ -76,19 +70,13 @@ const deletePost = async ( userId, postId ) => {
     }
 
     const publicIds = post.medias.map((m) => m.public_id);
-    try {      
-        // Xóa ảnh trên cloudinary
+    try {
         await cloudinary.api.delete_resources( publicIds, {
-            invalidate: true // Xóa ngay lập tức
+            invalidate: true
         })
 
-        // Xóa trong database
         await prisma.$transaction([
-            prisma.posts.delete({
-                where: {
-                    id: postId
-                }
-            })
+            prisma.posts.delete({ where: { id: postId } })
         ])
 
         return { success: true }
@@ -98,4 +86,29 @@ const deletePost = async ( userId, postId ) => {
     }    
 }
 
-module.exports = { createPost, deletePost }
+const getFeed = async () => {
+    const feed = await prisma.posts.findMany({
+        orderBy: { created_at: 'desc' },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar_url: true
+                }
+            },
+            medias: {
+                select: {
+                    public_id: true
+                }
+            }
+        }
+    })
+
+    return feed.map(post => ({
+        ...post,
+        imageUrl: post.medias?.[0]?.public_id ? cloudinary.url(post.medias[0].public_id, { secure: true }) : null
+    }))
+}
+
+module.exports = { createPost, deletePost, getFeed };

@@ -1,4 +1,4 @@
-const postService = require('../services/postService')
+﻿const postService = require('../services/postService')
 
 const createPost = async ( req, res ) => {
     try {
@@ -18,13 +18,25 @@ const createPost = async ( req, res ) => {
     } 
 }
 
+const getFeed = async (req, res) => {
+    try {
+        const posts = await postService.getFeed()
+        return res.status(200).json({ posts })
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Lỗi server',
+            error: error.message
+        })
+    }
+}
+
 const detelePost = async ( req, res ) => {
     try {
         const userId = req.user.id;
         const postId = parseInt(req.params.id);
         await postService.deletePost( userId, postId );
 
-        return res.status(204);
+        return res.status(204).send();
         
     } catch (error) {
         return res.status(500).json({
@@ -34,4 +46,4 @@ const detelePost = async ( req, res ) => {
     }
 }
 
-module.exports = { createPost, detelePost }
+module.exports = { createPost, detelePost, getFeed };
