@@ -98,4 +98,45 @@ const deletePost = async ( userId, postId ) => {
     }    
 }
 
-module.exports = { createPost, deletePost }
+const getComments = async ( postId, lastId ) => {
+    const LIMIT = 20; // Lấy 20 comment 1 lần
+    const comments = await prisma.comments.findMany({
+        where: {
+            post_id: postId
+        },
+
+        orderBy: {
+            created_at: 'desc'
+        },
+
+        take: LIMIT,
+
+        cursor: lastId ? { id: Number(lastId) } : undefined,
+
+        skip: lastId ? 1 : 0,
+
+        select: {
+            id: true,
+            content: true,
+            created_at: true,
+            // Thay vì 'include', hãy dùng 'select' cho quan hệ 'user'
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    full_name: true,
+                    avatar_url: true
+                }
+            }
+        }
+    })
+
+    if(comments.length === 0) return [];
+
+    return {
+        comments,
+        lastId: comments[comments.length - 1].id
+    }
+}
+
+module.exports = { createPost, deletePost, getComments }

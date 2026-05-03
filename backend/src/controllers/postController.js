@@ -34,4 +34,24 @@ const detelePost = async ( req, res ) => {
     }
 }
 
-module.exports = { createPost, detelePost }
+const getComments = async ( req, res ) => {
+    try {
+        const postId = parseInt(req.params.id);
+        const lastId = parseInt(req.query.lastId);
+
+        const comments = await postService.getComments(postId, lastId);
+
+        return res.status(200).json({
+            message: 'Lấy message thành công!',
+            comments
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Lỗi server',
+            error: error.message
+        })
+    }
+}
+
+module.exports = { createPost, detelePost, getComments }

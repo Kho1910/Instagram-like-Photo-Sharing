@@ -3,7 +3,7 @@ const exploreService = require('../services/exploreService')
 const getExplore = async ( req, res ) => {
     try {
         const userId = req.user.id;
-        const lastId = req.params.lastId;
+        const lastId = parseInt(req.query.lastId);
 
         const explore = await exploreService.getExplore(userId, lastId);
 

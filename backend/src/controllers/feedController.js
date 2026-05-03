@@ -3,7 +3,7 @@ const feedService = require('../services/feedService');
 const getFeed = async ( req, res ) => {
     try {
         const userId = req.user.id;
-        const lastId = parseInt(req.params.lastId);
+        const lastId = parseInt(req.query.lastId);
 
         const feed = await feedService.getFeed(userId, lastId);
 

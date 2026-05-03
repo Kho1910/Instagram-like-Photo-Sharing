@@ -7,5 +7,6 @@ const postController = require('../controllers/postController')
 
 router.post('/', authMiddleware, validate(postSchema.create), postController.createPost)
 router.delete('/:id', authMiddleware, postController.detelePost);
+router.get('/:id/comments', authMiddleware, postController.getComments);
 
 module.exports = router;
