@@ -18,12 +18,12 @@ class userService {
     }
 
     async follow(followerId, followingId) {
-        const follower = await prisma.findUnique({where: {id: followerId}});
+        const follower = await prisma.users.findUnique({where: {id: followerId}});
         if (!follower) {
             throw new Error ('Không thấy người follow.');
         }
 
-        const following = await prisma.findUnique({where: {id: followingId}});
+        const following = await prisma.users.findUnique({where: {id: followingId}});
         if (!following) {
             throw new Error ('Không thấy người được follow.');
         }
@@ -43,12 +43,12 @@ class userService {
     }
 
     async unfollow(followerId, followingId) {
-        const follower = await prisma.findUnique({where: {id: followerId}});
+        const follower = await prisma.users.findUnique({where: {id: followerId}});
         if (!follower) {
             throw new Error ('Không thấy người follow.');
         }
 
-        const following = await prisma.findUnique({where: {id: followingId}});
+        const following = await prisma.users.findUnique({where: {id: followingId}});
         if (!following) {
             throw new Error ('Không thấy người được follow.');
         }

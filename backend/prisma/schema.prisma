@@ -27,12 +27,14 @@ model users {
   notificationsSent       notifications[] @relation("notifications_sender")
   medias                  medias[]
   posts                   posts[]
+  views                   views[]
   otp_code                String?
   otp_expires_at          DateTime?
   @@index([full_name], map: "idx_full_name")
 }
 
-model medias { // Các file như Ảnh, Video, Nhạc,...
+/* Các file như Ảnh, Video, Nhạc,... */
+model medias {
   id              Int                     @id @default(autoincrement()) @db.UnsignedInt
   user_id         Int                     @db.UnsignedInt
   post_id        Int?                    @db.UnsignedInt
@@ -65,9 +67,23 @@ model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment s
   user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   medias         medias[]
+  views           views[]
 
-  @@index([created_at], map: "idx_photos_created_at")
-  @@index([user_id], map: "idx_photos_user_id")
+  @@index([created_at], map: "idx_posts_created_at")
+  @@index([user_id], map: "idx_posts_user_id")
+}
+
+/* Thông tin xem post */
+model views {
+  viewer_id Int @db.UnsignedInt
+  post_id Int @db.UnsignedInt
+  created_at DateTime @default(now())
+
+  viewer  users   @relation(fields: [viewer_id], references: [id], onDelete: Cascade)
+  post    posts   @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@id([viewer_id, post_id])
+  @@index([viewer_id, created_at(sort: Desc)])
 }
 
 model bookmarks {
@@ -123,18 +139,18 @@ model notifications {
   recipient_id                                                                                             Int                @db.UnsignedInt
   sender_id                                                                                                Int                @db.UnsignedInt
   type                                                                                                     notifications_type
-  photo_id                                                                                                 Int?               @db.UnsignedInt
+  post_id                                                                                                 Int?               @db.UnsignedInt
   comment_id                                                                                               Int?               @db.UnsignedInt
   is_read                                                                                                  Boolean?           @default(false)
   created_at                                                                                               DateTime?          @default(now()) @db.Timestamp(0)
   recipient                                                                                                users @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   sender                                                                                                   users @relation("notifications_sender", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  post                                                                                                   posts?            @relation(fields: [photo_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
+  post                                                                                                   posts?            @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
   comments                                                                                                 comments?          @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "4")
 
   @@index([comment_id], map: "comment_id")
   @@index([recipient_id, is_read, created_at], map: "idx_notifications_recipient_read")
-  @@index([photo_id], map: "photo_id")
+  @@index([post_id], map: "post_id")
   @@index([sender_id], map: "sender_id")
 }
 
