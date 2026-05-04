@@ -70,7 +70,7 @@ model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment s
   views           views[]
 
   @@index([created_at], map: "idx_posts_created_at")
-  @@index([user_id], map: "idx_posts_user_id")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_posts_user_id")
 }
 
 /* Thông tin xem post */
