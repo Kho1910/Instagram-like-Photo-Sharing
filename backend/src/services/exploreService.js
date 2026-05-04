@@ -1,5 +1,4 @@
 const prisma = require('../config/db')
-const { calculatePostScore } = require('./discoveryService')
 
 /**
  * Lấy posts cho explore
@@ -37,7 +36,11 @@ const getExplore = async ( userId, lastId ) => {
 
         skip: lastId ? 1 : 0,
 
-        include: {
+        select: {
+            title: true,
+            content: true,
+            created_at: true,            
+
             user: {
                 select: {
                     id: true,
@@ -50,7 +53,13 @@ const getExplore = async ( userId, lastId ) => {
             _count: {
                 select: {
                     likes: true,
-                    comments: true
+                    comments: true,
+                }
+            },
+
+            medias: {
+                select: {
+                    public_id: true
                 }
             }
         }

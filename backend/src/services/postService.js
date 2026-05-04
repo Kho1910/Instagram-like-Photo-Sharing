@@ -119,7 +119,7 @@ const getComments = async ( postId, lastId ) => {
             id: true,
             content: true,
             created_at: true,
-            // Thay vì 'include', hãy dùng 'select' cho quan hệ 'user'
+            
             user: {
                 select: {
                     id: true,

@@ -36,7 +36,11 @@ const getFeed = async ( userId, lastId ) => {
 
         skip: lastId ? 1 : 0,
 
-        include: {
+        select: {
+            title: true,
+            content: true,
+            created_at: true,            
+
             user: {
                 select: {
                     id: true,
@@ -50,6 +54,12 @@ const getFeed = async ( userId, lastId ) => {
                 select: {
                     likes: true,
                     comments: true,
+                }
+            },
+
+            medias: {
+                select: {
+                    public_id: true
                 }
             }
         }
