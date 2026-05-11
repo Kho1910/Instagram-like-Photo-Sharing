@@ -1,5 +1,7 @@
 const prisma = require('../config/db')
 const cloudinary = require('../config/cloudnary')
+const notificationService = require('./notificationService')
+
 
 const createPost = async ( userId, postData ) => {
     const user = await prisma.users.findFirst({ where: { id: userId }})
@@ -49,6 +51,12 @@ const createPost = async ( userId, postData ) => {
 
     if (!newPost) {
         throw new Error ('Tạo post thất bại.');
+    }
+
+    try {
+        await notificationService.notifyFollowersOfNewPost(userId, newPost.id);
+    } catch (error) {
+        console.error('Không thể gửi thông báo post:', error);
     }
 
     return {
@@ -139,4 +147,15 @@ const getComments = async ( postId, lastId ) => {
     }
 }
 
-module.exports = { createPost, deletePost, getComments }
+const viewPost = async ( userId, postId ) => {
+    const viewService = require('./viewService');
+    
+    const view = await viewService.recordView(userId, postId);
+
+    return {
+        success: true,
+        view
+    }
+}
+
+module.exports = { createPost, deletePost, getComments, viewPost }

@@ -54,4 +54,24 @@ const getComments = async ( req, res ) => {
     }
 }
 
-module.exports = { createPost, detelePost, getComments }
+const viewPost = async ( req, res ) => {
+	try {
+		const userId = parseInt(req.user.id);
+		const postId = parseInt(req.params.id);
+
+		const result = await postService.viewPost(userId, postId);
+
+		return res.status(200).json({
+			message: 'Ghi nhận view thành công',
+			data: result
+		})
+
+	} catch (error) {
+		return res.status(400).json({
+			message: 'Lỗi server',
+			error: error.message
+		})
+	}
+}
+
+module.exports = { createPost, detelePost, getComments, viewPost }

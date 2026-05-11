@@ -10,6 +10,7 @@ const postRoutes = require('./routes/postRoute');
 const feedRoutes = require('./routes/feedRoute');
 const exploreRoutes = require('./routes/exploreRoute')
 const interactionRoute = require('./routes/interactionRoute');
+const notificationRoutes = require('./routes/notificationRoute');
 
 app.use(cors());
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/explore', exploreRoutes);
 app.use('/api', interactionRoute);
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
