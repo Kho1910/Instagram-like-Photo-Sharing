@@ -9,7 +9,6 @@ const mediaRoutes = require('./routes/mediaRoute');
 const postRoutes = require('./routes/postRoute');
 const feedRoutes = require('./routes/feedRoute');
 const exploreRoutes = require('./routes/exploreRoute')
-const interactionRoute = require('./routes/interactionRoute');
 const notificationRoutes = require('./routes/notificationRoute');
 
 const notificationWorker = require('./workers/notificationWorker');
@@ -22,7 +21,6 @@ app.use('/api/medias', mediaRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/explore', exploreRoutes);
-app.use('/api', interactionRoute);
 app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 3000;
