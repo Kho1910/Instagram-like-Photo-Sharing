@@ -78,12 +78,12 @@ const getAvatarUploadSignature = async (req, res) => {
 		return res.status(200).json({
 			message: 'Lấy signature thành công',
 			data: avatarSignature,
-		};
+		});
 	} catch (error) {
 		return res.status(400).json({
 			message: 'Lấy signature thất bại',
 			error: error.message,
-		};
+		});
 	}
 }
 
@@ -139,7 +139,7 @@ module.exports = {
     unfollow,
     getUserPosts,
     getAvatarUploadSignature,
-    updateAvatar
+    updateAvatar,
     updateProfile,
 }
 

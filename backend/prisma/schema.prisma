@@ -5,12 +5,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model users {
-  id                      Int             @id @default(autoincrement()) @db.UnsignedInt
+  id                      Int             @id @default(autoincrement()) 
   username                String          @unique(map: "username") @db.VarChar(50)
   full_name               String?         @db.VarChar(100)
   email                   String          @unique(map: "email") @db.VarChar(100)
@@ -35,9 +35,9 @@ model users {
 
 /* Các file như Ảnh, Video, Nhạc,... */
 model medias {
-  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
-  user_id         Int                     @db.UnsignedInt
-  post_id        Int?                    @db.UnsignedInt
+  id              Int                     @id @default(autoincrement()) 
+  user_id         Int                     
+  post_id        Int?                    
   resource_type   media_type
   public_id       String                  @unique // Lưu Cloudinary id
   resolution_tier photos_resolution_tier? @default(original)
@@ -52,8 +52,8 @@ model medias {
 }
 
 model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment sẽ cho cả bài đăng chứ không phải từng ảnh
-  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
-  user_id         Int                     @db.UnsignedInt
+  id              Int                     @id @default(autoincrement()) 
+  user_id         Int                     
 
   title           String?
   content         String?
@@ -75,8 +75,8 @@ model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment s
 
 /* Thông tin xem post */
 model views {
-  viewer_id Int @db.UnsignedInt
-  post_id Int @db.UnsignedInt
+  viewer_id Int 
+  post_id Int 
   created_at DateTime @default(now())
 
   viewer  users   @relation(fields: [viewer_id], references: [id], onDelete: Cascade)
@@ -87,21 +87,21 @@ model views {
 }
 
 model bookmarks {
-  user_id    Int       @db.UnsignedInt
-  post_id   Int       @db.UnsignedInt
+  user_id    Int       
+  post_id   Int       
   created_at DateTime? @default(now()) @db.Timestamp(0)
 
   users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   post     posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@id([user_id, post_id])
-  @@index([post_id], map: "post_id")
+  @@index([post_id], map: "idx_bookmarks_post_id")
 }
 
 model comments {
-  id            Int             @id @default(autoincrement()) @db.UnsignedInt
-  user_id       Int             @db.UnsignedInt
-  post_id       Int              @db.UnsignedInt
+  id            Int             @id @default(autoincrement()) 
+  user_id       Int             
+  post_id       Int              
   content       String          @db.Text
   created_at    DateTime?       @default(now()) @db.Timestamp(0)
   user         users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
@@ -113,19 +113,19 @@ model comments {
 }
 
 model follows {
-  follower_id                                                                                  Int       @db.UnsignedInt
-  following_id                                                                                 Int       @db.UnsignedInt
+  follower_id                                                                                  Int       
+  following_id                                                                                 Int       
   created_at                                                                                   DateTime? @default(now()) @db.Timestamp(0)
   follower                                                                                     users @relation("follows_follower", fields: [follower_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   following                                                                                    users @relation("follows_following", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@id([follower_id, following_id])
-  @@index([following_id], map: "idx_following_id")
+  @@index([following_id], map: "idx_follows_following_id")
 }
 
 model likes {
-  user_id     Int       @db.UnsignedInt
-  post_id     Int       @db.UnsignedInt
+  user_id     Int       
+  post_id     Int       
   created_at  DateTime? @default(now()) @db.Timestamp(0)
   users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   post        posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
@@ -135,12 +135,12 @@ model likes {
 }
 
 model notifications {
-  id                                                                                                       Int                @id @default(autoincrement()) @db.UnsignedInt
-  recipient_id                                                                                             Int                @db.UnsignedInt
-  sender_id                                                                                                Int                @db.UnsignedInt
+  id                                                                                                       Int                @id @default(autoincrement()) 
+  recipient_id                                                                                             Int                
+  sender_id                                                                                                Int                
   type                                                                                                     notifications_type
-  post_id                                                                                                 Int?               @db.UnsignedInt
-  comment_id                                                                                               Int?               @db.UnsignedInt
+  post_id                                                                                                 Int?               
+  comment_id                                                                                               Int?               
   is_read                                                                                                  Boolean?           @default(false)
   created_at                                                                                               DateTime?          @default(now()) @db.Timestamp(0)
   recipient                                                                                                users @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
@@ -148,10 +148,10 @@ model notifications {
   post                                                                                                   posts?            @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
   comments                                                                                                 comments?          @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "4")
 
-  @@index([comment_id], map: "comment_id")
+  @@index([comment_id], map: "idx_notifications_comment_id")
   @@index([recipient_id, is_read, created_at], map: "idx_notifications_recipient_read")
-  @@index([post_id], map: "post_id")
-  @@index([sender_id], map: "sender_id")
+  @@index([post_id], map: "idx_notifications_post_id")
+  @@index([sender_id], map: "idx_notifications_sender_id")
 }
 
 enum media_type {

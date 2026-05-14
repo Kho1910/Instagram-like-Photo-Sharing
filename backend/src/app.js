@@ -23,7 +23,10 @@ app.use('/api/explore', exploreRoutes);
 app.use('/api', interactionRoute);
 app.use('/api/notifications', notificationRoutes);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server đang chạy tại http://localhost:${PORT}`);
+app.get("/", (req, res) => {
+  res.json({
+    ok: true
+  });
 });
+
+module.exports = app
