@@ -22,7 +22,7 @@ const follow = async (req, res) => {
         const followingId = parseInt(req.params.id);
         await userService.follow(followerId, followingId);
 
-        return res.status(204);
+        return res.status(204).end();
     } catch (error) {
         res.status(400).json({
             message: 'Follow thất bại',
@@ -37,7 +37,7 @@ const unfollow = async (req, res) => {
         const followingId = parseInt(req.params.id);
         await userService.unfollow(followerId, followingId);
 
-        return res.status(204);
+        return res.status(204).end();
     } catch (error) {
         res.status(400).json({
             message: 'Unfollow thất bại',
@@ -78,12 +78,12 @@ const getAvatarUploadSignature = async (req, res) => {
 		return res.status(200).json({
 			message: 'Lấy signature thành công',
 			data: avatarSignature,
-		};
+		});
 	} catch (error) {
 		return res.status(400).json({
 			message: 'Lấy signature thất bại',
 			error: error.message,
-		};
+		});
 	}
 }
 
@@ -139,7 +139,7 @@ module.exports = {
     unfollow,
     getUserPosts,
     getAvatarUploadSignature,
-    updateAvatar
+    updateAvatar,
     updateProfile,
 }
 

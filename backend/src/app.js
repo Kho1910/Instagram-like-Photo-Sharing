@@ -12,6 +12,8 @@ const exploreRoutes = require('./routes/exploreRoute')
 const interactionRoute = require('./routes/interactionRoute');
 const notificationRoutes = require('./routes/notificationRoute');
 
+const notificationWorker = require('./workers/notificationWorker');
+
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
