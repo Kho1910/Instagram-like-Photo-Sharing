@@ -106,6 +106,8 @@ const deletePost = async ( userId, postId ) => {
     }    
 }
 
+
+
 const getComments = async ( postId, lastId ) => {
     const LIMIT = 20; // Lấy 20 comment 1 lần
     const comments = await prisma.comments.findMany({
@@ -147,6 +149,107 @@ const getComments = async ( postId, lastId ) => {
     }
 }
 
+const likePost = async (userId, postId) => {
+    const post = await prisma.posts.findUnique({
+        where: { id: postId }
+    });
+
+    if (!post) {
+        throw new Error('Không tìm thấy bài đăng.');
+    }
+
+    return await prisma.likes.upsert({
+        where: {
+            user_id_post_id: {
+                user_id: userId,
+                post_id: postId
+            }
+        },
+        update: {},
+        create: {
+            user_id: userId,
+            post_id: postId
+        }
+    });
+}
+
+const unlikePost = async (userId, postId) => {
+    return await prisma.likes.delete({
+        where: {
+            user_id_post_id: {
+                user_id: userId,
+                post_id: postId
+            }
+        }
+    });
+}
+
+const createComment = async (userId, postId, commentData) => {
+    const post = await prisma.posts.findUnique({
+        where: { id: postId }
+    });
+
+    if (!post) {
+        throw new Error('Không tìm thấy bài đăng.');
+    }
+
+    const newComment = await prisma.comments.create({
+        data: {
+            user_id: userId,
+            post_id: postId,
+            content: commentData.content
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    full_name: true,
+                    avatar_url: true
+                }
+            }
+        }
+    });
+
+    if (post.user_id !== userId) {
+        try {
+            const notification = await notificationService.createNotification(post.user_id, userId, 'comment', postId, newComment.id);
+            await notificationService.queueNotification({
+                type: 'comment',
+                recipientID: post.user_id,
+                senderID: userId,
+                postID: postId,
+                commentID: newComment.id,
+                notification
+            });
+        } catch (notificationError) {
+            console.error('Không thể gửi thông báo bình luận:', notificationError);
+        }
+    }
+
+    return newComment;
+}
+
+const deleteComment = async (userId, postId, commentId) => {
+    const comment = await prisma.comments.findUnique({
+        where: { id: commentId }
+    });
+
+    if (!comment || comment.post_id !== postId) {
+        throw new Error('Không tìm thấy bình luận.');
+    }
+
+    if (comment.user_id !== userId) {
+        throw new Error('Không có quyền xóa bình luận này.');
+    }
+
+    await prisma.comments.delete({
+        where: { id: commentId }
+    });
+
+    return { success: true };
+}
+
 const viewPost = async ( userId, postId ) => {
     const viewService = require('./viewService');
     
@@ -158,4 +261,4 @@ const viewPost = async ( userId, postId ) => {
     }
 }
 
-module.exports = { createPost, deletePost, getComments, viewPost }
+module.exports = { createPost, deletePost, getComments, viewPost, likePost, unlikePost, createComment, deleteComment }

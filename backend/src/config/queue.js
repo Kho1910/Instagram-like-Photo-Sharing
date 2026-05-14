@@ -1,9 +1,10 @@
-const { Queue, Worker } = require('bullmq');
+const { Queue } = require('bullmq');
 const Valkey = require('iovalkey');
 
 const valkey = new Valkey({
 	host: process.env.REDIS_HOST || 'localhost',
 	port: process.env.REDIS_PORT || 6379,
+	maxRetriesPerRequest: null,
 });
 
 const notificationQueue = new Queue('notifications', {

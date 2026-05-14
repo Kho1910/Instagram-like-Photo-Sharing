@@ -24,7 +24,7 @@ const detelePost = async ( req, res ) => {
         const postId = parseInt(req.params.id);
         await postService.deletePost( userId, postId );
 
-        return res.status(204);
+        return res.status(204).send();
         
     } catch (error) {
         return res.status(500).json({
@@ -74,4 +74,79 @@ const viewPost = async ( req, res ) => {
 	}
 }
 
-module.exports = { createPost, detelePost, getComments, viewPost }
+const likePost = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = parseInt(req.params.id);
+
+        await postService.likePost(userId, postId);
+
+        return res.status(201).json({
+            message: 'Thích bài đăng thành công'
+        });
+    } catch (error) {
+        return res.status(400).json({
+            message: 'Không thể like bài đăng',
+            error: error.message
+        });
+    }
+}
+
+const unlikePost = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = parseInt(req.params.id);
+
+        await postService.unlikePost(userId, postId);
+
+        return res.status(200).json({
+            message: 'Bỏ thích bài đăng thành công'
+        });
+    } catch (error) {
+        return res.status(400).json({
+            message: 'Không thể bỏ thích bài đăng',
+            error: error.message
+        });
+    }
+}
+
+const createComment = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = parseInt(req.params.id);
+        const commentData = req.body;
+
+        const comment = await postService.createComment(userId, postId, commentData);
+
+        return res.status(201).json({
+            message: 'Bình luận thành công',
+            comment
+        });
+    } catch (error) {
+        return res.status(400).json({
+            message: 'Không thể tạo bình luận',
+            error: error.message
+        });
+    }
+}
+
+const deleteComment = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = parseInt(req.params.id);
+        const commentId = parseInt(req.params.commentId);
+
+        await postService.deleteComment(userId, postId, commentId);
+
+        return res.status(200).json({
+            message: 'Xóa bình luận thành công'
+        });
+    } catch (error) {
+        return res.status(400).json({
+            message: 'Không thể xóa bình luận',
+            error: error.message
+        });
+    }
+}
+
+module.exports = { createPost, detelePost, getComments, viewPost, likePost, unlikePost, createComment, deleteComment }

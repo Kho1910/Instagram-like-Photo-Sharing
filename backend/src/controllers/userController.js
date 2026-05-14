@@ -22,7 +22,7 @@ const follow = async (req, res) => {
         const followingId = parseInt(req.params.id);
         await userService.follow(followerId, followingId);
 
-        return res.status(204);
+        return res.status(204).end();
     } catch (error) {
         res.status(400).json({
             message: 'Follow thất bại',
@@ -37,7 +37,7 @@ const unfollow = async (req, res) => {
         const followingId = parseInt(req.params.id);
         await userService.unfollow(followerId, followingId);
 
-        return res.status(204);
+        return res.status(204).end();
     } catch (error) {
         res.status(400).json({
             message: 'Unfollow thất bại',
@@ -101,7 +101,7 @@ const updateAvatar = async (req, res) => {
 		await mediaService.confirmMedia(userId, publicId, 'image');
 
 		const updatedUser = await userService.updateProfile(userId, {
-			avatar_url: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`
+			avatar_url: publicId
 		});
 
 		return res.status(200).json({
