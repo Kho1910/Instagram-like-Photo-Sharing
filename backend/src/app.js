@@ -9,9 +9,9 @@ const mediaRoutes = require('./routes/mediaRoute');
 const postRoutes = require('./routes/postRoute');
 const feedRoutes = require('./routes/feedRoute');
 const exploreRoutes = require('./routes/exploreRoute')
-const notificationRoutes = require('./routes/notificationRoute');
+// const notificationRoutes = require('./routes/notificationRoute');
 
-const notificationWorker = require('./workers/notificationWorker');
+// const notificationWorker = require('./workers/notificationWorker');
 
 app.use(cors());
 app.use(express.json());
@@ -21,6 +21,6 @@ app.use('/api/medias', mediaRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/explore', exploreRoutes);
-app.use('/api/notifications', notificationRoutes);
+// app.use('/api/notifications', notificationRoutes);
 
 module.exports = app
