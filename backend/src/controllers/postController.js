@@ -1,4 +1,5 @@
 const postService = require('../services/postService')
+const prisma = require('../config/db')
 
 const createPost = async ( req, res ) => {
     try {
@@ -39,11 +40,13 @@ const getComments = async ( req, res ) => {
         const postId = parseInt(req.params.id);
         const lastId = parseInt(req.query.lastId);
 
-        const comments = await postService.getComments(postId, lastId);
+        const result = await postService.getComments(postId, lastId);
+        const comments = result.comments || [];
 
         return res.status(200).json({
-            message: 'Lấy message thành công!',
-            comments
+            message: 'Lấy message thành công!',
+            comments,
+            lastId: result.lastId || null
         })
 
     } catch (error) {
@@ -80,9 +83,11 @@ const likePost = async (req, res) => {
         const postId = parseInt(req.params.id);
 
         await postService.likePost(userId, postId);
+        const likeCount = await prisma.likes.count({ where: { post_id: postId } });
 
         return res.status(201).json({
-            message: 'Thích bài đăng thành công'
+            message: 'Thích bài đăng thành công',
+            data: { like_count: likeCount, liked: true }
         });
     } catch (error) {
         return res.status(400).json({
@@ -98,9 +103,11 @@ const unlikePost = async (req, res) => {
         const postId = parseInt(req.params.id);
 
         await postService.unlikePost(userId, postId);
+        const likeCount = await prisma.likes.count({ where: { post_id: postId } });
 
         return res.status(200).json({
-            message: 'Bỏ thích bài đăng thành công'
+            message: 'Bỏ thích bài đăng thành công',
+            data: { like_count: likeCount, liked: false }
         });
     } catch (error) {
         return res.status(400).json({

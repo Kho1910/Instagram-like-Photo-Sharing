@@ -1,0 +1,272 @@
+<!-- frontend/src/views/ProfileView.vue -->
+<template>
+  <div class="page-wrap">
+    <div v-if="loading" class="loader-center">
+      <div class="spinner"></div>
+    </div>
+
+    <template v-else-if="profile">
+      <!-- Header -->
+      <div class="profile-header">
+        <div class="avatar-lg">
+          <img v-if="profile.avatar_url" :src="profile.avatar_url" />
+          <span v-else>{{ profile.username?.[0]?.toUpperCase() || '?' }}</span>
+        </div>
+
+        <div class="profile-meta">
+          <div class="profile-name-row">
+            <h2>{{ profile.username }}</h2>
+            <button v-if="!isMe" @click="toggleFollow"
+              :class="['follow-btn', { following: isFollowing }]">
+              {{ isFollowing ? '✓ Đang follow' : '+ Follow' }}
+            </button>
+            <div v-else class="profile-actions">
+              <button class="edit-btn" @click="startEdit" v-if="!editMode">
+                Chỉnh sửa profile
+              </button>
+              <router-link to="/upload" class="upload-link">
+                + Upload ảnh
+              </router-link>
+            </div>
+          </div>
+
+          <div v-if="editMode" class="profile-edit-form">
+            <input v-model="editData.full_name" placeholder="Họ và tên" />
+            <textarea v-model="editData.bio" placeholder="Tiểu sử" rows="3" />
+            <div class="edit-actions">
+              <button class="save-btn" @click="saveProfile">Lưu</button>
+              <button class="cancel-btn" @click="cancelEdit">Hủy</button>
+            </div>
+          </div>
+
+          <div class="profile-stats">
+            <div class="stat"><strong>{{ totalPosts }}</strong><span>bài đăng</span></div>
+            <div class="stat"><strong>0</strong><span>followers</span></div>
+            <div class="stat"><strong>0</strong><span>following</span></div>
+          </div>
+
+          <p v-if="profile.fullname" class="full-name">{{ profile.fullname }}</p>
+          <p v-if="profile.bio" class="bio">{{ profile.bio }}</p>
+        </div>
+      </div>
+
+      <!-- Grid ảnh (lazy load khi cuộn) -->
+      <InfiniteScroll :loading="isLoadingMore" :hasMore="hasMore" @load-more="loadMorePosts">
+        <div v-if="posts.length > 0" class="photo-grid" >
+          <div v-for="post in posts" :key="post.id" class="grid-item" @click.stop="openPost(post)">
+            <!-- medias là array, lấy ảnh đầu tiên -->
+            <img
+              v-if="post.medias && post.medias[0]"
+              :src="buildUrl(post.medias[0].public_id)"
+              loading="lazy"
+            />
+            <div class="grid-overlay">
+              <span>♥ {{ post._count?.likes || 0 }}</span>
+              <span>💬 {{ post._count?.comments || 0 }}</span>
+            </div>
+          </div>
+        </div>
+      </InfiniteScroll>
+
+    </template>
+
+    <div v-else class="empty-state">
+      <p>📷 Chưa có ảnh nào.</p>
+      <router-link v-if="isMe" to="/upload">Upload ảnh đầu tiên →</router-link>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, reactive, onMounted } from 'vue'
+import InfiniteScroll from '@/components/common/InfiniteScroll.vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuth }     from '@/composables/useAuth'
+import { userService } from '@/services/userService'
+import { usePostStore } from '@/stores/postStore'
+
+const route  = useRoute()
+const router = useRouter()
+const postStore = usePostStore()
+const { user: authUser } = useAuth()
+
+const profile     = ref(null)
+const posts       = ref([])
+const loading     = ref(true)
+const isFollowing = ref(false)
+const totalPosts  = ref(0)
+const hasMore     = ref(false)
+const nextCursor  = ref(null)
+const isLoadingMore = ref(false)
+const editMode    = ref(false)
+const editData    = reactive({ full_name: '', bio: '' })
+const PAGE_SIZE   = 12
+
+// So sánh string để tránh type mismatch
+const isMe = computed(() =>
+  String(route.params.id) === String(authUser.value?.id)
+)
+
+const CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+function buildUrl(publicId) {
+  if (!CLOUD || !publicId) return ''
+  return `https://res.cloudinary.com/${CLOUD}/image/upload/${publicId}`
+}
+
+async function fetchAll() {
+  loading.value = true
+  try {
+    const uid = parseInt(route.params.id)
+    if (!uid || isNaN(uid)) {
+      console.error('userId không hợp lệ:', route.params.id)
+      loading.value = false
+      return
+    }
+
+    // Gọi song song
+    const [prof, postsResult] = await Promise.all([
+      userService.getProfile(uid),
+    userService.getUserPosts(uid, PAGE_SIZE)
+    ])
+
+    profile.value = prof
+    profile.value.id = uid
+    // postsResult = { posts, hasMore, nextCursor }
+    posts.value     = postsResult?.posts || []
+    totalPosts.value = posts.value.length
+    hasMore.value    = Boolean(postsResult?.hasMore)
+    nextCursor.value = postsResult?.nextCursor ?? null
+  } catch(e) {
+    console.error('Lỗi:', e.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function toggleFollow() {
+  const uid = parseInt(route.params.id)
+  try {
+    if (isFollowing.value) {
+      await userService.unfollow(uid)
+      isFollowing.value = false
+    } else {
+      await userService.follow(uid)
+      isFollowing.value = true
+    }
+  } catch(e) {
+    console.error('Follow thất bại:', e.message)
+  }
+}
+
+async function loadMorePosts() {
+  if (!hasMore.value || !nextCursor.value) return
+  isLoadingMore.value = true
+  try {
+    const uid = parseInt(route.params.id)
+    const postsResult = await userService.getUserPosts(uid, PAGE_SIZE, nextCursor.value)
+    const nextPosts = postsResult?.posts || []
+    posts.value.push(...nextPosts)
+    totalPosts.value = posts.value.length
+    hasMore.value = Boolean(postsResult?.hasMore)
+    nextCursor.value = postsResult?.nextCursor ?? null
+  } catch (e) {
+    console.error('Không thể tải thêm bài đăng:', e.message)
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+
+function startEdit() {
+  editMode.value = true
+  editData.full_name = profile.value?.fullname || ''
+  editData.bio = profile.value?.bio || ''
+}
+
+function cancelEdit() {
+  editMode.value = false
+}
+
+async function saveProfile() {
+  if (!profile.value) return
+  try {
+    const updated = await userService.updateProfile({
+      full_name: editData.full_name,
+      bio: editData.bio
+    })
+    profile.value = updated
+    editMode.value = false
+  } catch (e) {
+    console.error('Cập nhật profile thất bại:', e.message)
+  }
+}
+
+function openPost(post) {
+  const plainPost = JSON.parse(JSON.stringify(post))
+  postStore.setSelectedPost(plainPost)
+  sessionStorage.setItem('selectedPost', JSON.stringify(plainPost))
+  router.push({
+    name: 'post-detail',
+    params: { id: plainPost.id },
+    state: { post: plainPost }
+  })
+}
+
+onMounted(fetchAll)
+</script>
+
+<style scoped>
+.profile-header { display:flex; gap:32px; align-items:flex-start;
+  margin-bottom:28px; flex-wrap:wrap; }
+.avatar-lg { width:80px; height:80px; border-radius:50%;
+  background:var(--color-primary); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; font-weight:700; overflow:hidden; flex-shrink:0; }
+.avatar-lg img { width:100%; height:100%; object-fit:cover; }
+.profile-meta { flex:1; }
+.profile-name-row { display:flex; align-items:center; gap:14px;
+  margin-bottom:14px; flex-wrap:wrap; }
+.profile-name-row h2 { font-size:22px; font-weight:300; }
+.follow-btn { padding:6px 16px; border-radius:20px; font-size:13px;
+  font-weight:600; border:1.5px solid var(--color-primary);
+  color:var(--color-primary); background:transparent; cursor:pointer; }
+.follow-btn:hover { background:var(--color-primary); color:#fff; }
+.follow-btn.following { background:#e2e8f0; border-color:#e2e8f0; color:#718096; }
+.upload-link { font-size:13px; font-weight:600; color:var(--color-primary);
+  border:1.5px solid var(--color-primary); padding:6px 14px; border-radius:20px; }
+.profile-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.edit-btn, .save-btn, .cancel-btn, .load-more-btn {
+  padding: 8px 14px; border-radius: 20px; border: 1px solid var(--color-border);
+  background: #fff; color: var(--color-text); cursor: pointer;
+}
+.edit-btn { border-color: var(--color-primary); color: var(--color-primary); }
+.save-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.cancel-btn { border-color: #cbd5e1; }
+.load-more-btn { margin: 24px auto 0; display: block; }
+.profile-edit-form { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.profile-edit-form input,
+.profile-edit-form textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); font-size: 14px; }
+.edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.profile-stats { display:flex; gap:24px; margin-bottom:12px; }
+.stat { display:flex; flex-direction:column; align-items:center; }
+.stat strong { font-size:17px; font-weight:700; }
+.stat span { font-size:12px; color:#718096; }
+.full-name { font-weight:600; font-size:14px; }
+.bio { font-size:13px; color:#718096; margin-top:4px; }
+
+.photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+.grid-item { position:relative; aspect-ratio:1; overflow:hidden; cursor:pointer; }
+.grid-item img { width:100%; height:100%; object-fit:cover; transition:transform .2s; }
+.grid-item:hover img { transform:scale(1.05); }
+.grid-overlay { position:absolute; inset:0; background:rgba(0,0,0,.35);
+  display:flex; align-items:center; justify-content:center;
+  gap:16px; color:#fff; font-weight:600; opacity:0; transition:opacity .2s; }
+.grid-item:hover .grid-overlay { opacity:1; }
+
+.loader-center { display:flex; justify-content:center; padding:48px; }
+.spinner { width:32px; height:32px; border-radius:50%;
+  border:3px solid #e2e8f0; border-top-color:var(--color-primary);
+  animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.empty-state { text-align:center; padding:48px; color:#718096; }
+.empty-state a { color:var(--color-primary); font-weight:600; }
+</style>

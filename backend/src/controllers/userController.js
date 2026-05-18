@@ -49,7 +49,7 @@ const unfollow = async (req, res) => {
 const getUserPosts = async (req, res) => {
 	try {
 		const userId = parseInt(req.params.id);
-		const limit = parseInt(req.params.limit) || 10;
+		const limit = parseInt(req.query.limit) || 10;
 		const cursorId = req.query.cursorId ? parseInt(req.query.cursorId) : null;
 
 		const result = await userService.getUserPosts(userId, limit, cursorId);
