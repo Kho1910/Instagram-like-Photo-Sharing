@@ -1,14 +1,14 @@
 const cloudinary = require('../config/cloudnary')
 const prisma = require('../config/db')
 
-const getSignature = async (userId) => {
+const getSignature = async (userId, options = {}) => {
     const user = await prisma.users.findFirst({ where: { id: userId }})
     if(!user) {
         throw new Error ('Không tồn tại user.')
     }
 
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const folder = `instar/users/${userId}/posts`;
+    const folder = options.folder ?? `instar/users/${userId}/posts`;
 
     const paragramToSign = {
         timestamp: timestamp,

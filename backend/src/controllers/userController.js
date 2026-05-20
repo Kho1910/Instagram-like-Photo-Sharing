@@ -1,4 +1,5 @@
 const userService = require('../services/userService')
+const mediaService = require('../services/mediaService')
 
 const getProfile = async (req, res) => {
     try {
@@ -67,13 +68,10 @@ const getUserPosts = async (req, res) => {
 
 const getAvatarUploadSignature = async (req, res) => {
 	try {
-		const userId = parseInt(req.params.id);
-		const signature = await mediaService.getSignature(userId);
-
-		const avatarSignature = {
-			...signature,
+		const userId = parseInt(req.user.id);
+		const avatarSignature = await mediaService.getSignature(userId, {
 			folder: `instar/users/${userId}/avatar`,
-		};
+		});
 
 		return res.status(200).json({
 			message: 'Lấy signature thành công',

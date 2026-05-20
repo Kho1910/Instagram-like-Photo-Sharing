@@ -55,5 +55,14 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(u))
   }
 
-  return { token, user, isLoggedIn, userId, username, login, register, logout }
+  function patchUser(patch) {
+    if (!user.value) return
+    const next = { ...user.value, ...patch }
+    if (patch.fullname !== undefined) next.full_name = patch.fullname
+    if (patch.full_name !== undefined) next.fullname = patch.full_name
+    if (patch.avatar_url !== undefined) next.avatar_url = patch.avatar_url
+    _setAuth(token.value, next)
+  }
+
+  return { token, user, isLoggedIn, userId, username, login, register, logout, patchUser }
 })

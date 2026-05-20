@@ -1,12 +1,20 @@
 // frontend/src/services/userService.js
 import api from '@/api'
 
+function normalizeProfile(profile) {
+  if (!profile) return profile
+  return {
+    ...profile,
+    fullname: profile.fullname ?? profile.full_name ?? '',
+  }
+}
+
 export const userService = {
   async getProfile(userId) {
     const { data } = await api.get(`/users/${userId}`)
     // Backend trả: { profile: { username, fullname, bio, avatar_url } }
     // KHÔNG có id — phải giữ id từ nơi khác
-    return data.profile
+    return normalizeProfile(data.profile)
   },
 
   async getUserPosts(userId, limit = 12, cursorId = null) {
@@ -29,6 +37,16 @@ export const userService = {
 
   async updateProfile(profileData) {
     const { data } = await api.put('/users/profile', profileData)
-    return data.profile
-  }
+    return normalizeProfile(data.profile)
+  },
+
+  async getAvatarSignature() {
+    const { data } = await api.get('/users/avatar/signature')
+    return data.data
+  },
+
+  async updateAvatar(publicId) {
+    const { data } = await api.put('/users/avatar', { publicId })
+    return normalizeProfile(data.profile)
+  },
 }

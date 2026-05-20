@@ -43,5 +43,23 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
-  return { cache, selectedPost, setPost, getPost, setSelectedPost, getSelectedPost, fetchPost, updatePost, invalidate }
+  function patchUserAvatar(userId, avatarUrl) {
+    const uid = String(userId)
+    for (const post of Object.values(cache.value)) {
+      if (!post) continue
+      const postUserId = String(post.user_id ?? post.user?.id ?? '')
+      if (postUserId !== uid) continue
+      post.avatar_url = avatarUrl
+      if (post.user) post.user.avatar_url = avatarUrl
+    }
+    if (selectedPost.value) {
+      const selUid = String(selectedPost.value.user_id ?? selectedPost.value.user?.id ?? '')
+      if (selUid === uid) {
+        selectedPost.value.avatar_url = avatarUrl
+        if (selectedPost.value.user) selectedPost.value.user.avatar_url = avatarUrl
+      }
+    }
+  }
+
+  return { cache, selectedPost, setPost, getPost, setSelectedPost, getSelectedPost, fetchPost, updatePost, invalidate, patchUserAvatar }
 })

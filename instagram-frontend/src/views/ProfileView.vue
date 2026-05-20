@@ -9,9 +9,34 @@
       <h1 class="page-heading">Profile</h1>
       <!-- Header -->
       <div class="profile-header">
-        <div class="avatar-lg">
-          <img v-if="profile.avatar_url" :src="profile.avatar_url" />
+        <div
+          class="avatar-lg"
+          :class="{ 'avatar-lg--editable': editMode && isMe }"
+        >
+          <img v-if="avatarDisplayUrl" :src="avatarDisplayUrl" alt="" />
           <span v-else>{{ profile.username?.[0]?.toUpperCase() || '?' }}</span>
+
+          <button
+            v-if="editMode && isMe"
+            type="button"
+            class="avatar-change"
+            :disabled="saving"
+            aria-label="Thay đổi ảnh đại diện"
+            @click="triggerAvatarPick"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M12 16V4m0 0L8 8m4-4 4 4" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M4 20h16" stroke-linecap="round" />
+            </svg>
+            <span>thay đổi ảnh</span>
+          </button>
+          <input
+            ref="avatarInputRef"
+            type="file"
+            :accept="AVATAR_FILE_ACCEPT"
+            hidden
+            @change="onAvatarSelected"
+          />
         </div>
 
         <div class="profile-meta">
@@ -41,9 +66,12 @@
             <input v-model="editData.full_name" placeholder="Họ và tên" />
             <textarea v-model="editData.bio" placeholder="Tiểu sử" rows="3" />
             <div class="edit-actions">
-              <button class="save-btn" @click="saveProfile">Lưu</button>
-              <button class="cancel-btn" @click="cancelEdit">Hủy</button>
+              <button class="save-btn" :disabled="saving" @click="saveProfile">
+                {{ saving ? 'Đang lưu...' : 'Lưu' }}
+              </button>
+              <button class="cancel-btn" :disabled="saving" @click="cancelEdit">Hủy</button>
             </div>
+            <p v-if="saveError" class="save-error">{{ saveError }}</p>
           </div>
         </div>
       </div>
@@ -76,16 +104,21 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
 import InfiniteScroll from '@/components/common/InfiniteScroll.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth }     from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { userService } from '@/services/userService'
+import { mediaService } from '@/services/mediaService'
 import { usePostStore } from '@/stores/postStore'
+import { validateAvatarFile, AVATAR_FILE_ACCEPT } from '@/utils/avatarFile'
+import { patchFeedAvatarInCache } from '@/utils/feedCache'
 
 const route  = useRoute()
 const router = useRouter()
 const postStore = usePostStore()
+const authStore = useAuthStore()
 const { user: authUser } = useAuth()
 
 const profile     = ref(null)
@@ -96,8 +129,18 @@ const hasMore     = ref(false)
 const nextCursor  = ref(null)
 const isLoadingMore = ref(false)
 const editMode    = ref(false)
+const saving      = ref(false)
+const saveError   = ref('')
 const editData    = reactive({ full_name: '', bio: '' })
+const avatarInputRef = ref(null)
+const avatarPreviewUrl = ref(null)
+const avatarPendingFile = ref(null)
+const profileSnapshot = ref(null)
 const PAGE_SIZE   = 12
+
+const avatarDisplayUrl = computed(() =>
+  avatarPreviewUrl.value || profile.value?.avatar_url || null
+)
 
 // So sánh string để tránh type mismatch
 const isMe = computed(() =>
@@ -158,30 +201,122 @@ async function loadMorePosts() {
   }
 }
 
+function resetAvatarDraft() {
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value)
+    avatarPreviewUrl.value = null
+  }
+  avatarPendingFile.value = null
+}
+
+function triggerAvatarPick() {
+  avatarInputRef.value?.click()
+}
+
+function onAvatarSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  const check = validateAvatarFile(file)
+  if (!check.ok) {
+    saveError.value = check.message
+    return
+  }
+
+  saveError.value = ''
+  resetAvatarDraft()
+  avatarPendingFile.value = file
+  avatarPreviewUrl.value = URL.createObjectURL(file)
+}
+
+function mergeProfile(updated) {
+  return {
+    ...profile.value,
+    username: updated.username ?? profile.value?.username,
+    fullname: updated.fullname ?? updated.full_name ?? '',
+    bio: updated.bio ?? '',
+    avatar_url: updated.avatar_url ?? profile.value?.avatar_url ?? null,
+    id: profile.value?.id,
+  }
+}
+
+function syncProfileEverywhere(prof) {
+  authStore.patchUser({
+    username: prof.username,
+    fullname: prof.fullname,
+    bio: prof.bio,
+    avatar_url: prof.avatar_url,
+  })
+  posts.value.forEach((post) => {
+    if (post.user && String(post.user.id) === String(prof.id)) {
+      post.user.avatar_url = prof.avatar_url
+    }
+  })
+  postStore.patchUserAvatar(prof.id, prof.avatar_url)
+  patchFeedAvatarInCache(prof.id, prof.avatar_url)
+}
+
 function startEdit() {
   if (!isMe.value) return
+  saveError.value = ''
+  resetAvatarDraft()
+  profileSnapshot.value = profile.value ? { ...profile.value } : null
   editMode.value = true
   editData.full_name = profile.value?.fullname || ''
   editData.bio = profile.value?.bio || ''
 }
 
 function cancelEdit() {
+  resetAvatarDraft()
+  if (profileSnapshot.value) {
+    profile.value = { ...profileSnapshot.value }
+    profileSnapshot.value = null
+  }
+  saveError.value = ''
   editMode.value = false
 }
 
+async function uploadPendingAvatar() {
+  if (!avatarPendingFile.value) return null
+  const signature = await userService.getAvatarSignature()
+  const cloudResult = await mediaService.uploadToCloudinary(avatarPendingFile.value, signature)
+  return userService.updateAvatar(cloudResult.public_id)
+}
+
 async function saveProfile() {
-  if (!profile.value || !isMe.value) return
+  if (!profile.value || !isMe.value || saving.value) return
+  saving.value = true
+  saveError.value = ''
   try {
-    const updated = await userService.updateProfile({
+    let merged = { ...profile.value }
+
+    if (avatarPendingFile.value) {
+      const avatarUpdated = await uploadPendingAvatar()
+      resetAvatarDraft()
+      merged = mergeProfile(avatarUpdated)
+    }
+
+    const textUpdated = await userService.updateProfile({
       full_name: editData.full_name,
-      bio: editData.bio
+      bio: editData.bio,
     })
-    profile.value = updated
+    merged = mergeProfile({ ...merged, ...textUpdated })
+
+    syncProfileEverywhere(merged)
+    profile.value = merged
+    profileSnapshot.value = null
     editMode.value = false
   } catch (e) {
-    console.error('Cập nhật profile thất bại:', e.message)
+    const msg = e.response?.data?.error || e.message || 'Cập nhật profile thất bại'
+    saveError.value = typeof msg === 'string' ? msg : 'Cập nhật profile thất bại'
+    console.error('Cập nhật profile thất bại:', msg)
+  } finally {
+    saving.value = false
   }
 }
+
+onBeforeUnmount(resetAvatarDraft)
 
 function openPost(post) {
   const plainPost = JSON.parse(JSON.stringify(post))
@@ -207,6 +342,7 @@ onMounted(fetchAll)
 }
 .page-heading { font-size:24px; font-weight:700; margin-bottom:22px; }
 .avatar-lg {
+  position: relative;
   width: 112px;
   height: 112px;
   border-radius: 50%;
@@ -221,6 +357,54 @@ onMounted(fetchAll)
   flex-shrink: 0;
 }
 .avatar-lg img { width:100%; height:100%; object-fit:cover; }
+
+.avatar-lg--editable {
+  cursor: pointer;
+}
+
+.avatar-change {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: lowercase;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.avatar-lg--editable:hover .avatar-change,
+.avatar-lg--editable:focus-within .avatar-change {
+  opacity: 1;
+}
+
+.avatar-change svg {
+  width: 22px;
+  height: 22px;
+}
+
+.avatar-change:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.save-error {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-danger);
+}
 .profile-meta { flex: 1; min-width: 0; }
 .profile-top {
   display: flex;

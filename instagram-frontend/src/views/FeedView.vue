@@ -23,9 +23,11 @@
         <div class="post-header">
           <router-link :to="'/users/' + (post.user?.id || post.user_id)"
             class="post-author">
-            <div class="avatar">
-              {{ (post.user?.username || post.username)?.[0]?.toUpperCase() }}
-            </div>
+            <UserAvatar
+              :username="post.user?.username || post.username"
+              :src="post.user?.avatar_url || post.avatar_url"
+              :size="36"
+            />
             <div>
               <p class="author-name">{{ post.user?.username || post.username }}</p>
               <p class="post-time">{{ formatDate(post.created_at) }}</p>
@@ -79,12 +81,16 @@ import { formatDate } from '@/utils/formatters'
 import { useFeed }    from '@/composables/useFeed'
 import { useRouter } from 'vue-router'
 import { usePostStore } from '@/stores/postStore'
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import LikeButton from '@/components/common/LikeButton.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import { interactionService } from '@/services/interactionService'
+import { useAuthStore } from '@/stores/authStore'
+import { patchPostsAvatarInList } from '@/utils/feedCache'
 
 const router = useRouter()
 const postStore = usePostStore()
+const authStore = useAuthStore()
 const { posts, loading, hasMore, sentinel } = useFeed()
 
 // Restore scroll position when returning from PhotoDetail and keep in-sync
@@ -121,9 +127,30 @@ function syncFeedWithStore() {
       if (updated.is_liked !== undefined) {
         p.is_liked = updated.is_liked
       }
+
+      const avatarUrl = updated.avatar_url ?? updated.user?.avatar_url
+      if (avatarUrl) {
+        p.avatar_url = avatarUrl
+        if (p.user) p.user.avatar_url = avatarUrl
+      }
     }
   })
 }
+
+function syncMyAvatarOnFeed() {
+  const uid = authStore.userId
+  const url = authStore.user?.avatar_url
+  if (!uid || !url) return
+  patchPostsAvatarInList(posts.value, uid, url)
+}
+
+watch(() => authStore.user?.avatar_url, () => {
+  syncMyAvatarOnFeed()
+})
+
+onMounted(() => {
+  syncMyAvatarOnFeed()
+})
 
 // 1. Theo dõi khi Store có thay đổi (khi bạn đang ở Feed mà bấm Like)
 watch(() => postStore.cache, syncFeedWithStore, { deep: true })
@@ -220,10 +247,6 @@ function buildUrl(publicId) {
 .post-header { padding:12px 14px; border-bottom:1px solid var(--color-border); }
 .post-author { display:flex; align-items:center; gap:10px;
   text-decoration:none; color:inherit; }
-.avatar { width:36px; height:36px; border-radius:50%;
-  background:var(--color-primary); color:#fff;
-  display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:14px; flex-shrink:0; }
 .author-name { font-weight:600; font-size:14px; }
 .post-time   { font-size:11px; color:var(--color-text-muted); }
 .post-img    { width:100%; display:block; cursor:pointer; max-height:600px; object-fit:contain; background:var(--color-surface-hover); }
