@@ -87,6 +87,7 @@ import UserAvatar from '@/components/user/UserAvatar.vue'
 import { interactionService } from '@/services/interactionService'
 import { useAuthStore } from '@/stores/authStore'
 import { patchPostsAvatarInList } from '@/utils/feedCache'
+import { nextTick } from 'vue'
 
 const router = useRouter()
 const postStore = usePostStore()
@@ -96,10 +97,24 @@ const { posts, loading, hasMore, sentinel } = useFeed()
 // Restore scroll position when returning from PhotoDetail and keep in-sync
 const restored = ref(false)
 
-watch(posts, (list) => {
+watch(posts, async (list) => {
   if (!restored.value && list.length > 0) {
     const y = Number(sessionStorage.getItem('feedScrollY') || 0)
-    if (y) window.scrollTo(0, y)
+    
+    if (y) {
+      // 1. Đợi Vue tính toán xong cấu trúc HTML
+      await nextTick() 
+      
+      // 2. Dùng setTimeout để cho trình duyệt một khoảng thời gian ngắn (100ms) 
+      // nạp các khung ảnh trước khi thực hiện lệnh cuộn
+      setTimeout(() => {
+        window.scrollTo({
+          top: y,
+          behavior: 'instant' // Dùng 'instant' để màn hình không bị trượt giật giật
+        })
+      }, 100)
+    }
+    
     restored.value = true
     sessionStorage.removeItem('feedScrollY')
   }

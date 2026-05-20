@@ -3,7 +3,7 @@
     <BaseSpinner v-if="loading && !post" label="Đang tải..." />
 
     <div v-else-if="post" class="detail-shell">
-      <div class="detail-layout card">
+      <div class="detail-layout card" :style="detailLayoutStyle">
       <!-- Ảnh -->
       <div
         class="detail-img-col"
@@ -65,13 +65,9 @@
         <div class="detail-info-top">
           <div class="detail-author">
             <router-link :to="'/users/' + displayUserId" class="author-link">
-              <UserAvatar :username="displayUsername" :src="displayAvatar" :size="40" />
+              <UserAvatar :username="displayUsername" :src="displayAvatar" :size="32" />
               <strong>{{ displayUsername }}</strong>
             </router-link>
-            <!-- Follow button disabled by request -->
-            <!-- <FollowButton v-if="!isOwner"
-              :user-id="displayUserId" :is-following="isFollowing"
-              @update:is-following="v => isFollowing = v" /> -->
           </div>
           <button type="button" class="detail-back-btn" aria-label="Quay lại" @click="goBack">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -80,35 +76,37 @@
           </button>
         </div>
 
-        <!-- Resolution badge (quan trọng cho demo) -->
-        <div class="detail-badge">
-          <ResolutionBadge :tier="post.resolution_tier" :status="post.status" />
+        <div class="detail-info-scroll">
+          <div class="detail-badge">
+            <ResolutionBadge :tier="post.resolution_tier" :status="post.status" />
+          </div>
+
+          <div v-if="post.title || post.content || post.caption" class="detail-caption-block">
+            <router-link :to="'/users/' + displayUserId" class="caption-author">{{ displayUsername }}</router-link>
+            <p v-if="post.title" class="detail-title">{{ post.title }}</p>
+            <p v-if="post.content" class="detail-content">{{ post.content }}</p>
+            <p v-else-if="post.caption" class="detail-caption">{{ post.caption }}</p>
+          </div>
+
+          <CommentList :comments="comments" />
         </div>
 
-        <!-- Title and caption -->
-        <p v-if="post.title" class="detail-title">{{ post.title }}</p>
-        <p v-if="post.content" class="detail-content">{{ post.content }}</p>
-        <p v-else-if="post.caption" class="detail-caption">{{ post.caption }}</p>
-
-        <!-- Actions -->
-        <PhotoActions :post="post"
-          @like-updated="(count, isLiked) => {
-            // Cập nhật số lượng
-            post.like_count = count;
-            if (post._count) post._count.likes = count;
-            
-            // FIX: Bắt buộc cập nhật trạng thái Tim để đồng bộ ra Feed
-            if (isLiked !== undefined) {
-              post.is_liked = isLiked;
-            } else {
-              post.is_liked = !post.is_liked; 
-            }
-          }"
-          @focus-comment="focusInput" />
-
-        <!-- Comments -->
-        <CommentInput ref="commentInput" :highlight="commentHighlight" @submit="onSubmitComment" />
-        <CommentList :comments="comments" />
+        <div class="detail-info-footer">
+          <PhotoActions
+            :post="post"
+            @like-updated="(count, isLiked) => {
+              post.like_count = count
+              if (post._count) post._count.likes = count
+              if (isLiked !== undefined) {
+                post.is_liked = isLiked
+              } else {
+                post.is_liked = !post.is_liked
+              }
+            }"
+            @focus-comment="focusInput"
+          />
+          <CommentInput ref="commentInput" :highlight="commentHighlight" @submit="onSubmitComment" />
+        </div>
       </div>
       </div>
     </div>
@@ -244,7 +242,7 @@ const displayAvatar = computed(
 )
 const isOwner = computed(() => String(displayUserId.value) === String(userId.value))
 
-/** Khung ảnh cố định theo ảnh lớn nhất — mũi tên không nhảy khi đổi slide */
+/** Kích thước khung media (ổn định theo viewport + tỉ lệ, không theo pixel ảnh gốc) */
 const mediaBoxSize = ref(null)
 const isMeasuringImages = ref(false)
 let measureToken = 0
@@ -261,37 +259,72 @@ function loadImageSize(url) {
   })
 }
 
-const INFO_COL_WIDTH = 300
+const INFO_COL_WIDTH = 390
 const LAYOUT_BREAKPOINT = 768
-/** Giới hạn kích thước vùng ảnh (giống Instagram, không quá to) */
-const MAX_MEDIA_WIDTH = 560
-const MAX_MEDIA_HEIGHT = 580
+/** Khoảng trống trên + dưới modal (Instagram để ~50–60px mỗi bên) */
+const VIEWPORT_V_MARGIN = 120
+const VIEWPORT_H_MARGIN = 48
+const SIDE_NAV_OFFSET = 72
+/** Khung media tối thiểu — ảnh nhỏ vẫn có hộp đủ lớn nhưng không quá cao */
+const MIN_MEDIA_WIDTH = 480
+const MIN_MEDIA_HEIGHT = 400
+/** Trần chiều cao khung media (desktop) — tránh modal gần full màn hình */
+const MAX_MEDIA_HEIGHT_DESKTOP = 700
+/** Giới hạn tỉ lệ hiển thị (tránh panorama cực rộng kéo layout) */
+const MIN_DISPLAY_ASPECT = 0.8
+const MAX_DISPLAY_ASPECT = 1.91
 
 function getViewportLimits() {
   const isDesktop = window.innerWidth >= LAYOUT_BREAKPOINT
-  const navHeight = 56
-  const pagePad = 48
-  const maxH = Math.min(
-    MAX_MEDIA_HEIGHT,
-    window.innerHeight - navHeight - 100
-  )
+  const maxH = isDesktop
+    ? Math.min(window.innerHeight - VIEWPORT_V_MARGIN, MAX_MEDIA_HEIGHT_DESKTOP)
+    : Math.min(window.innerHeight - 96, 480)
   const maxW = isDesktop
-    ? Math.min(
-        MAX_MEDIA_WIDTH,
-        window.innerWidth - INFO_COL_WIDTH - pagePad
-      )
-    : Math.min(MAX_MEDIA_WIDTH, window.innerWidth - 32)
+    ? window.innerWidth - SIDE_NAV_OFFSET - INFO_COL_WIDTH - VIEWPORT_H_MARGIN
+    : window.innerWidth - 24
+  const minW = isDesktop ? MIN_MEDIA_WIDTH : 280
+  const minH = isDesktop ? MIN_MEDIA_HEIGHT : 280
   return {
-    maxW: Math.max(240, maxW),
-    maxH: Math.max(240, maxH),
+    maxW: Math.max(minW, maxW),
+    maxH: Math.max(minH, maxH),
+    minW,
+    minH,
   }
 }
 
-function fitDisplaySize(natW, natH, maxW, maxH) {
-  const scale = Math.min(1, maxW / natW, maxH / natH)
+function clampDisplayAspect(natW, natH) {
+  if (!natW || !natH) return 4 / 5
+  const raw = natW / natH
+  return Math.max(MIN_DISPLAY_ASPECT, Math.min(MAX_DISPLAY_ASPECT, raw))
+}
+
+/**
+ * Kích thước khung media theo tỉ lệ + min/max viewport,
+ * không scale theo pixel gốc của ảnh (ảnh nhỏ/to đều nằm trong khung cố định).
+ */
+function computeMediaFrameSize(natW, natH, limits) {
+  const aspect = clampDisplayAspect(natW, natH)
+
+  let width = limits.maxW
+  let height = width / aspect
+
+  if (height > limits.maxH) {
+    height = limits.maxH
+    width = height * aspect
+  }
+
+  width = Math.max(width, limits.minW)
+  height = Math.max(height, limits.minH)
+
+  if (width > limits.maxW || height > limits.maxH) {
+    const scale = Math.min(limits.maxW / width, limits.maxH / height)
+    width *= scale
+    height *= scale
+  }
+
   return {
-    width: Math.round(natW * scale),
-    height: Math.round(natH * scale),
+    width: Math.round(width),
+    height: Math.round(height),
   }
 }
 
@@ -309,19 +342,23 @@ async function measureMediaBox(urls) {
     const sizes = await Promise.all(urls.map(loadImageSize))
     if (token !== measureToken) return
 
-    let unionW = 0
-    let unionH = 0
-    for (const { w, h } of sizes) {
-      if (w > unionW) unionW = w
-      if (h > unionH) unionH = h
+    const limits = getViewportLimits()
+    const frames = sizes.map(({ w, h }) => computeMediaFrameSize(w, h, limits))
+
+    let width = limits.minW
+    let height = limits.minH
+    for (const frame of frames) {
+      if (frame.width > width) width = frame.width
+      if (frame.height > height) height = frame.height
     }
 
-    const { maxW, maxH } = getViewportLimits()
-    if (unionW > 0 && unionH > 0) {
-      mediaBoxSize.value = fitDisplaySize(unionW, unionH, maxW, maxH)
-    } else {
-      mediaBoxSize.value = fitDisplaySize(4, 5, maxW, maxH)
+    if (width > limits.maxW || height > limits.maxH) {
+      const scale = Math.min(limits.maxW / width, limits.maxH / height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
     }
+
+    mediaBoxSize.value = { width, height }
   } finally {
     if (token === measureToken) isMeasuringImages.value = false
   }
@@ -340,6 +377,18 @@ const mediaColStyle = computed(() => {
   return {
     width: `${mediaBoxSize.value.width}px`,
     minWidth: `${mediaBoxSize.value.width}px`,
+    height: `${mediaBoxSize.value.height}px`,
+  }
+})
+
+const detailLayoutStyle = computed(() => {
+  const maxH = `min(calc(100vh - ${VIEWPORT_V_MARGIN}px), ${MAX_MEDIA_HEIGHT_DESKTOP}px)`
+  if (!mediaBoxSize.value) {
+    return { maxHeight: maxH }
+  }
+  return {
+    height: `${mediaBoxSize.value.height}px`,
+    maxHeight: maxH,
   }
 })
 
@@ -392,22 +441,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Căn giữa toàn bộ khung chi tiết bài đăng */
-.post-detail-page {
-  max-width: 100%;
+/* Trang chi tiết: full vùng nội dung, căn giữa modal kiểu Instagram */
+.post-detail-page.page-wrap {
+  max-width: none;
   width: 100%;
+  min-height: calc(100vh - 24px);
+  padding: 48px 24px 48px;
+  margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .detail-info-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  padding: 14px 16px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .detail-back-btn {
@@ -438,9 +493,10 @@ onUnmounted(() => {
 
 .detail-shell {
   width: 100%;
+  max-width: 100%;
   display: flex;
   justify-content: center;
-  padding: 0 8px;
+  align-items: center;
 }
 
 .card {
@@ -459,17 +515,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: min(880px, calc(100vw - 32px));
+  max-width: calc(100vw - 48px);
   margin: 0 auto;
-  max-height: calc(100vh - var(--nav-height) - 48px);
+  max-height: min(calc(100vh - 120px), 620px);
+  border: 1px solid var(--color-border);
 }
 
 @media (min-width: 768px) {
   .detail-layout {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
     width: auto;
-    max-width: min(880px, calc(100vw - 32px));
+    max-width: calc(100vw - 72px - 48px);
   }
 }
 
@@ -486,8 +543,15 @@ onUnmounted(() => {
 }
 
 .detail-img-col--loading {
-  min-height: 320px;
-  min-width: 280px;
+  min-height: 400px;
+  min-width: 480px;
+}
+
+@media (max-width: 767px) {
+  .detail-img-col--loading {
+    min-height: 320px;
+    min-width: 280px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -594,26 +658,59 @@ onUnmounted(() => {
 
 .detail-info-col {
   width: 100%;
-  flex: 0 0 auto;
-  padding: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
   background: var(--color-surface);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  min-height: 200px;
-  max-height: min(420px, calc(100vh - 120px));
+  min-height: 280px;
+  max-height: min(50vh, 480px);
 }
 
 @media (min-width: 768px) {
   .detail-info-col {
-    width: 300px;
-    flex: 0 0 300px;
-    min-width: 300px;
-    max-height: calc(100vh - 48px);
+    width: 390px;
+    flex: 0 0 390px;
+    min-width: 390px;
+    max-width: 390px;
+    min-height: 400px;
+    max-height: none;
+    height: auto;
+    align-self: stretch;
     border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     border-left: 1px solid var(--color-border);
   }
+}
+
+.detail-info-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 12px;
+}
+
+.detail-info-footer {
+  flex-shrink: 0;
+  padding: 0 16px 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-caption-block {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.caption-author {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.caption-author:hover {
+  text-decoration: underline;
 }
 
 .detail-author {
@@ -639,15 +736,31 @@ onUnmounted(() => {
 }
 
 .detail-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0 0;
 }
 
 .detail-content,
 .detail-caption {
   font-size: 14px;
-  margin-bottom: 12px;
-  color: var(--color-text-muted);
+  margin: 4px 0 0;
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 767px) {
+  .post-detail-page.page-wrap {
+    padding: 16px 12px 24px;
+    justify-content: flex-start;
+  }
+
+  .detail-layout {
+    max-height: none;
+  }
+
+  .detail-info-col {
+    max-height: min(45vh, 400px);
+  }
 }
 </style>
