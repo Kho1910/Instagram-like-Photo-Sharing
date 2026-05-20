@@ -4,7 +4,6 @@
 
     <div class="navbar__links">
       <router-link to="/feed"          class="nav-link" title="Feed">🏠</router-link>
-      <router-link to="/explore"       class="nav-link" title="Explore">🔍</router-link>
       <router-link to="/upload"        class="nav-link" title="Upload">📤</router-link>
       <router-link to="/notifications" class="nav-link" title="Thông báo">
         🔔<span v-if="unreadCount > 0" class="notif-dot">{{ unreadCount }}</span>

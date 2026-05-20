@@ -23,12 +23,7 @@ const routes = [
     component: () => import('@/views/FeedView.vue'),
     meta: { requiresAuth: true }
   },
-  {
-    path: '/explore',
-    name: 'explore',
-    component: () => import('@/views/ExploreView.vue'),
-    meta: { requiresAuth: true }
-  },
+  { path: '/explore', redirect: '/feed' },
   {
     path: '/upload',
     name: 'upload',
@@ -61,7 +56,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior: () => ({ top: 0 })
+  // FIX CUỘN TRANG: Nếu có vị trí cũ (lúc bấm nút Back), thì giữ nguyên vị trí đó. 
+  // Nếu là mở trang mới thì mới cuộn lên top: 0
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    return { top: 0 }
+  }
 })
 
 // Navigation Guard

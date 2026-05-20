@@ -1,0 +1,4 @@
+userId 1 -> posts: []
+userId 100 -> posts: 9
+userId 102 -> posts: 9
+userId 103 -> posts: 10

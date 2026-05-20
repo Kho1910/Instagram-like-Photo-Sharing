@@ -6,6 +6,7 @@
     </div>
 
     <template v-else-if="profile">
+      <h1 class="page-heading">Profile</h1>
       <!-- Header -->
       <div class="profile-header">
         <div class="avatar-lg">
@@ -16,11 +17,8 @@
         <div class="profile-meta">
           <div class="profile-name-row">
             <h2>{{ profile.username }}</h2>
-            <button v-if="!isMe" @click="toggleFollow"
-              :class="['follow-btn', { following: isFollowing }]">
-              {{ isFollowing ? '✓ Đang follow' : '+ Follow' }}
-            </button>
-            <div v-else class="profile-actions">
+            <!-- Follow button removed -->
+            <div class="profile-actions">
               <button class="edit-btn" @click="startEdit" v-if="!editMode">
                 Chỉnh sửa profile
               </button>
@@ -39,14 +37,14 @@
             </div>
           </div>
 
+          <p v-if="profile.fullname" class="full-name">{{ profile.fullname }}</p>
+          <p v-if="profile.bio" class="bio">{{ profile.bio }}</p>
+
           <div class="profile-stats">
             <div class="stat"><strong>{{ totalPosts }}</strong><span>bài đăng</span></div>
             <div class="stat"><strong>0</strong><span>followers</span></div>
             <div class="stat"><strong>0</strong><span>following</span></div>
           </div>
-
-          <p v-if="profile.fullname" class="full-name">{{ profile.fullname }}</p>
-          <p v-if="profile.bio" class="bio">{{ profile.bio }}</p>
         </div>
       </div>
 
@@ -93,7 +91,6 @@ const { user: authUser } = useAuth()
 const profile     = ref(null)
 const posts       = ref([])
 const loading     = ref(true)
-const isFollowing = ref(false)
 const totalPosts  = ref(0)
 const hasMore     = ref(false)
 const nextCursor  = ref(null)
@@ -140,21 +137,6 @@ async function fetchAll() {
     console.error('Lỗi:', e.message)
   } finally {
     loading.value = false
-  }
-}
-
-async function toggleFollow() {
-  const uid = parseInt(route.params.id)
-  try {
-    if (isFollowing.value) {
-      await userService.unfollow(uid)
-      isFollowing.value = false
-    } else {
-      await userService.follow(uid)
-      isFollowing.value = true
-    }
-  } catch(e) {
-    console.error('Follow thất bại:', e.message)
   }
 }
 
@@ -217,15 +199,17 @@ onMounted(fetchAll)
 <style scoped>
 .profile-header { display:flex; gap:32px; align-items:flex-start;
   margin-bottom:28px; flex-wrap:wrap; }
+.page-heading { font-size:24px; font-weight:700; margin-bottom:22px; }
 .avatar-lg { width:80px; height:80px; border-radius:50%;
   background:var(--color-primary); color:#fff;
   display:flex; align-items:center; justify-content:center;
   font-size:32px; font-weight:700; overflow:hidden; flex-shrink:0; }
 .avatar-lg img { width:100%; height:100%; object-fit:cover; }
 .profile-meta { flex:1; }
-.profile-name-row { display:flex; align-items:center; gap:14px;
+.profile-name-row { display:flex; align-items:center; justify-content:space-between; gap:14px;
   margin-bottom:14px; flex-wrap:wrap; }
 .profile-name-row h2 { font-size:22px; font-weight:300; }
+.profile-actions { margin-left: auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .follow-btn { padding:6px 16px; border-radius:20px; font-size:13px;
   font-weight:600; border:1.5px solid var(--color-primary);
   color:var(--color-primary); background:transparent; cursor:pointer; }
@@ -238,9 +222,28 @@ onMounted(fetchAll)
   padding: 8px 14px; border-radius: 20px; border: 1px solid var(--color-border);
   background: #fff; color: var(--color-text); cursor: pointer;
 }
-.edit-btn { border-color: var(--color-primary); color: var(--color-primary); }
+.edit-btn {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.edit-btn:hover {
+  background: #fff;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
 .save-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .cancel-btn { border-color: #cbd5e1; }
+.upload-link {
+  font-size: 13px; font-weight: 600; color: var(--color-primary);
+  border: 1.5px solid var(--color-primary); padding: 6px 14px; border-radius: 20px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.upload-link:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
 .load-more-btn { margin: 24px auto 0; display: block; }
 .profile-edit-form { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
 .profile-edit-form input,

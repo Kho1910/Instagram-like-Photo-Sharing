@@ -1,7 +1,7 @@
 <!-- frontend/src/views/UploadView.vue -->
 <template>
   <div class="page-wrap">
-    <h2 class="page-heading">📤 Upload ảnh</h2>
+    <h2 class="page-heading upload-heading">📤 Upload ảnh</h2>
 
     <div class="upload-wrap card">
 
@@ -113,22 +113,35 @@ function openFilePicker() {
 async function doUpload() {
   if (!files.value.length) return
   await upload(files.value, { title: title.value, content: content.value })
+  
+  // Sau khi upload thành công, xóa sạch bộ nhớ tạm của Feed.
+  // Nhờ đó, khi bấm nút "Về Feed", nó sẽ buộc phải gọi API lấy bài mới nhất.
+  sessionStorage.removeItem('feedCache_v1')
 }
 </script>
 
 <style scoped>
 .page-heading  { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+.upload-heading { background: transparent; color: var(--color-text); padding: 0; border: none; display: block; margin-bottom: 16px; }
 .upload-wrap   { padding: 24px; max-width: 600px; margin: 0 auto; }
 
 .caption-form  { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .caption-input {
   padding: 10px 12px; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md); font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 .caption-textarea {
   padding: 10px 12px; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md); font-size: 14px;
   resize: vertical; font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.caption-input::placeholder,
+.caption-textarea::placeholder {
+  color: var(--color-text-muted);
 }
 .caption-input:focus, .caption-textarea:focus {
   outline: none; border-color: var(--color-primary);
@@ -145,7 +158,7 @@ async function doUpload() {
   border-radius: var(--radius-md);
   overflow: hidden;
   min-height: 120px;
-  background: #f8fafc;
+  background: var(--color-surface-hover);
 }
 .preview-thumb img {
   width: 100%;
@@ -172,7 +185,7 @@ async function doUpload() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--color-surface-hover);
   color: var(--color-primary);
   font-size: 18px;
   border-radius: var(--radius-md);
@@ -187,10 +200,10 @@ async function doUpload() {
 }
 .result-meta   { margin-bottom: 14px; }
 .result-title  { font-weight: 700; margin-bottom: 4px; }
-.result-content { color: #4a5568; font-size: 14px; margin-bottom: 12px; }
+.result-content { color: var(--color-text-muted); font-size: 14px; margin-bottom: 12px; }
 .tier-badge    {
   font-size: 12px; font-weight: 600; padding: 4px 10px;
-  border-radius: var(--radius-full); background: #E1F5EE; color: #085041;
+  border-radius: var(--radius-full); background: var(--color-success); opacity: 0.15; color: var(--color-success);
 }
 .result-actions { display: flex; gap: 10px; justify-content: center; }
 .upload-error  { color: var(--color-danger); text-align: center; margin-top: 12px; font-size: 13px; }

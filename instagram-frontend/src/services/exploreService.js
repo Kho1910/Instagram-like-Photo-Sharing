@@ -1,14 +1,19 @@
-// app.use('/api/explore', exploreRoutes)
+// Gọi API explore (bài từ người chưa follow) — dùng trong Feed sau khi hết bài đã follow
 import api from '@/api'
 
-export const exploreService = {
-  async getExplore(page = 1, limit = 12) {
-    const { data } = await api.get('/explore', { params: { page, limit } })
-    return data   // { data: [...], meta }
-  },
-
-  async search(q, page = 1) {
-    const { data } = await api.get('/explore/search', { params: { q, page } })
-    return data
+function parseExploreResponse(explore) {
+  if (!explore) return { posts: [], lastId: null }
+  if (Array.isArray(explore)) return { posts: explore, lastId: null }
+  return {
+    posts: explore.posts || [],
+    lastId: explore.lastId ?? null,
   }
+}
+
+export const exploreService = {
+  async getExplore(lastId = null) {
+    const params = lastId ? { lastId } : {}
+    const { data } = await api.get('/explore', { params })
+    return parseExploreResponse(data.explore)
+  },
 }

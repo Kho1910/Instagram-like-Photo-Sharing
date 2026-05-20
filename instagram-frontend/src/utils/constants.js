@@ -11,6 +11,5 @@ export const STATUS = {
   ERROR:      'error',
 }
 
-export const FEED_LIMIT    = 10
-export const EXPLORE_LIMIT = 12
+export const FEED_PAGE_SIZE = 20 // khớp LIMIT backend (feed + explore)
 export const POLL_INTERVAL = 2000   // ms

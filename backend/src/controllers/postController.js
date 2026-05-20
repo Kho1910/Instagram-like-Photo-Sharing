@@ -1,11 +1,11 @@
 const postService = require('../services/postService')
 const prisma = require('../config/db')
 
-const createPost = async ( req, res ) => {
+const createPost = async (req, res) => {
     try {
         const userId = req.user.id;
         const postData = req.body;
-        const { newPost }= await postService.createPost(userId, postData);
+        const { newPost } = await postService.createPost(userId, postData);
 
         return res.status(201).json({
             post: newPost
@@ -16,17 +16,17 @@ const createPost = async ( req, res ) => {
             message: 'Lỗi server',
             error: error.message
         })
-    } 
+    }
 }
 
-const detelePost = async ( req, res ) => {
+const detelePost = async (req, res) => {
     try {
         const userId = req.user.id;
         const postId = parseInt(req.params.id);
-        await postService.deletePost( userId, postId );
+        await postService.deletePost(userId, postId);
 
         return res.status(204).send();
-        
+
     } catch (error) {
         return res.status(500).json({
             message: 'Lỗi server',
@@ -35,7 +35,25 @@ const detelePost = async ( req, res ) => {
     }
 }
 
-const getComments = async ( req, res ) => {
+const getPost = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = parseInt(req.params.id);
+        const post = await postService.getPost(userId, postId);
+
+        return res.status(200).json({
+            message: 'Lấy bài đăng thành công',
+            post
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Không thể lấy bài đăng',
+            error: error.message
+        });
+    }
+}
+
+const getComments = async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         const lastId = parseInt(req.query.lastId);
@@ -57,24 +75,24 @@ const getComments = async ( req, res ) => {
     }
 }
 
-const viewPost = async ( req, res ) => {
-	try {
-		const userId = parseInt(req.user.id);
-		const postId = parseInt(req.params.id);
+const viewPost = async (req, res) => {
+    try {
+        const userId = parseInt(req.user.id);
+        const postId = parseInt(req.params.id);
 
-		const result = await postService.viewPost(userId, postId);
+        const result = await postService.viewPost(userId, postId);
 
-		return res.status(200).json({
-			message: 'Ghi nhận view thành công',
-			data: result
-		})
+        return res.status(200).json({
+            message: 'Ghi nhận view thành công',
+            data: result
+        })
 
-	} catch (error) {
-		return res.status(400).json({
-			message: 'Lỗi server',
-			error: error.message
-		})
-	}
+    } catch (error) {
+        return res.status(400).json({
+            message: 'Lỗi server',
+            error: error.message
+        })
+    }
 }
 
 const likePost = async (req, res) => {
@@ -156,4 +174,4 @@ const deleteComment = async (req, res) => {
     }
 }
 
-module.exports = { createPost, detelePost, getComments, viewPost, likePost, unlikePost, createComment, deleteComment }
+module.exports = { createPost, detelePost, getPost, getComments, viewPost, likePost, unlikePost, createComment, deleteComment }

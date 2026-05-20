@@ -3,12 +3,15 @@ const prisma = require('../config/db')
 /**
  * Lấy posts cho explore
  */
-const getExplore = async ( userId, lastId ) => {
+const getExplore = async (userId, lastId) => {
     const LIMIT = 20; // Lấy 20 post 1 lần
 
-    // Lấy các danh sách post
+    // Lấy các danh sách post từ người chưa follow (không bao gồm bài của mình)
     const posts = await prisma.posts.findMany({
         where: {
+            user_id: {
+                not: userId
+            },
             user: {
                 followedBy: {
                     none: {
@@ -17,11 +20,7 @@ const getExplore = async ( userId, lastId ) => {
                 }
             },
 
-            views: {
-                none: {
-                    viewer_id: userId
-                }
-            }
+            // removed 'views' filter so feed/explore shows posts regardless of prior views
         },
 
         orderBy: {
@@ -31,15 +30,17 @@ const getExplore = async ( userId, lastId ) => {
         take: LIMIT,
 
         cursor: lastId
-        ? { id: Number(lastId) }
-        : undefined,
+            ? { id: Number(lastId) }
+            : undefined,
 
         skip: lastId ? 1 : 0,
 
         select: {
+            id: true,
+            user_id: true,
             title: true,
             content: true,
-            created_at: true,            
+            created_at: true,
 
             user: {
                 select: {
@@ -47,6 +48,15 @@ const getExplore = async ( userId, lastId ) => {
                     username: true,
                     full_name: true,
                     avatar_url: true
+                }
+            },
+
+            likes: {
+                where: {
+                    user_id: userId
+                },
+                select: {
+                    user_id: true
                 }
             },
 
@@ -59,6 +69,7 @@ const getExplore = async ( userId, lastId ) => {
 
             medias: {
                 select: {
+                    id: true,
                     public_id: true
                 }
             }
@@ -67,9 +78,14 @@ const getExplore = async ( userId, lastId ) => {
 
     if (posts.length === 0) return [];
 
+    const normalizedPosts = posts.map(({ likes, ...post }) => ({
+        ...post,
+        is_liked: (likes?.length || 0) > 0
+    }))
+
     return {
-        posts,
-        lastId: posts[posts.length - 1].id
+        posts: normalizedPosts,
+        lastId: normalizedPosts[normalizedPosts.length - 1].id
     }
 }
 

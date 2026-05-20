@@ -1,7 +1,18 @@
 <template>
   <div class="auth-page">
     <div class="auth-card card">
-      <h1 class="auth-logo">📷 Instagram</h1>
+      <h1 class="auth-logo">
+  <span class="logo-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.5" y="6.5" width="17" height="12" rx="2" />
+      <path d="M8 6.5L9.5 4.5H14.5L16 6.5" />
+      <circle cx="12" cy="12.5" r="2.5" />
+    </svg>
+  </span>
+  InstaClone
+</h1>
+
+      
 
       <div class="auth-tabs">
         <button :class="{ active: tab === 'login' }"    @click="tab = 'login'">Đăng nhập</button>
@@ -90,6 +101,28 @@ async function handleSubmit() {
   justify-content: center; background: var(--color-bg); padding: 16px; }
 .auth-card  { width: 100%; max-width: 380px; padding: 32px; }
 .auth-logo  { font-size: 26px; text-align: center; margin-bottom: 24px; }
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px; 
+  font-size: 26px; text-align: center; margin-bottom: 24px; 
+}
+
+/* Kế thừa CSS icon từ Navbar */
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon svg {
+  /* Tôi chỉnh size lên 32px một chút để nó cân xứng với kích thước chữ h1 to ở trang Login */
+  width: 32px; 
+  height: 32px;
+}
+
 .auth-tabs  { display: flex; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md); overflow: hidden; margin-bottom: 20px; }
 .auth-tabs button { flex: 1; padding: 9px; border: none; background: none;

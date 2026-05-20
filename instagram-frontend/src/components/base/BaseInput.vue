@@ -22,6 +22,10 @@ defineEmits(['update:modelValue'])
   padding: 10px 12px; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md); font-size: 14px; transition: border-color .15s;
   background: var(--color-surface);
+  color: var(--color-text);
+}
+.input-field::placeholder {
+  color: var(--color-text-muted);
 }
 .input-field:focus { outline: none; border-color: var(--color-primary); }
 .input-field--error { border-color: var(--color-danger); }

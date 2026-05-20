@@ -27,6 +27,11 @@ export const postService = {
     await api.post(`/posts/${postId}/view`)
   },
 
+  async getPost(postId) {
+    const { data } = await api.get(`/posts/${postId}`)
+    return data.post
+  },
+
   // Lấy ảnh của user — dùng userRoute
   async getUserPosts(userId, page = 1, limit = 12) {
     const { data } = await api.get(`/users/${userId}/posts`, {

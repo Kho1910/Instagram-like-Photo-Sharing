@@ -1,4 +1,4 @@
-<!-- Dùng trong ExploreView và ProfileView: grid 3 cột -->
+<!-- Dùng trong ProfileView: grid 3 cột -->
 <template>
   <div class="photo-grid">
     <div

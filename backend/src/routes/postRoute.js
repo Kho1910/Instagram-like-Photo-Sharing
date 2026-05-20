@@ -7,6 +7,7 @@ const authMiddleware = require('../middlewares/authMiddleware')
 const postController = require('../controllers/postController')
 
 router.post('/', authMiddleware, validate(postSchema.create), postController.createPost)
+router.get('/:id', authMiddleware, postController.getPost);
 router.post('/:id/like', authMiddleware, postController.likePost);
 router.post('/:id/unlike', authMiddleware, postController.unlikePost);
 router.post('/:id/comments', authMiddleware, validate(commentSchema.create), postController.createComment);
