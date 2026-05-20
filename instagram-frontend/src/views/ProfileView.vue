@@ -28,10 +28,10 @@
             </div>
 
             <div class="profile-actions">
-              <button class="edit-btn" @click="startEdit" v-if="!editMode">
+              <button class="edit-btn" @click="startEdit" v-if="!editMode && isMe">
                 Chỉnh sửa profile
               </button>
-              <router-link to="/upload" class="upload-link">
+              <router-link v-if="isMe" to="/upload" class="upload-link">
                 + Upload ảnh
               </router-link>
             </div>
@@ -159,6 +159,7 @@ async function loadMorePosts() {
 }
 
 function startEdit() {
+  if (!isMe.value) return
   editMode.value = true
   editData.full_name = profile.value?.fullname || ''
   editData.bio = profile.value?.bio || ''
@@ -169,7 +170,7 @@ function cancelEdit() {
 }
 
 async function saveProfile() {
-  if (!profile.value) return
+  if (!profile.value || !isMe.value) return
   try {
     const updated = await userService.updateProfile({
       full_name: editData.full_name,
