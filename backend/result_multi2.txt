@@ -1,4 +1,0 @@
-userId 1 -> posts: 7
-userId 100 -> posts: 9
-userId 102 -> posts: 9
-userId 103 -> posts: 10
