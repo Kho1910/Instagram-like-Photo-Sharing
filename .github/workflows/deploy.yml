@@ -3,7 +3,7 @@ name: Deploy Frontend to GitHub Pages
 on:
   push:
     branches:
-      - deploy-frontend # Điền chính xác tên branch bạn đang code và chuẩn bị push lên
+      - deploy-frontend 
 
 permissions:
   contents: write
@@ -29,5 +29,5 @@ jobs:
       - name: Đẩy gói build lên nhánh gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend/dist # Thư mục sinh ra sau khi build của Vite
-          branch: gh-pages # Tên nhánh chứa code chạy trực tuyến
+          folder: frontend/dist 
+          branch: gh-pages 
