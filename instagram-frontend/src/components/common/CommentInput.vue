@@ -22,7 +22,8 @@ defineExpose({ focus: () => input.value?.focus() })
 <style scoped>
 .comment-input { display: flex; gap: 8px; border-top: 1px solid var(--color-border); padding-top: 10px; margin-top: 8px; }
 .comment-input--highlight { animation: comment-highlight 1.2s ease-out; }
-.comment-field { flex: 1; border: none; outline: none; font-size: 13px; background: transparent; }
+.comment-field { flex: 1; border: none; outline: none; font-size: 13px; background: transparent; color: var(--color-text); }
+.comment-field::placeholder { color: var(--color-text-muted); }
 .comment-submit { border: none; background: none; color: var(--color-primary);
   font-weight: 700; font-size: 13px; }
 .comment-submit:disabled { opacity: .4; }

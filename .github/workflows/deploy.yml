@@ -1,0 +1,33 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - hoan-thien-fronend # Tên nhánh mà bạn muốn kích hoạt deploy khi push code lên
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cài đặt thư viện và Build Frontend
+        run: |
+          cd instagram-frontend
+          npm install
+          npm run build
+
+      - name: Đẩy gói build lên nhánh gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: instagram-frontend/dist 
+          branch: gh-pages 
