@@ -21,13 +21,15 @@ jobs:
           node-version: 20
 
       - name: Cài đặt thư viện và Build Frontend
+        env:
+          VITE_CLOUDINARY_CLOUD_NAME: 'druiodapu'
         run: |
-          cd frontend
+          cd instagram-frontend
           npm install
           npm run build
 
       - name: Đẩy gói build lên nhánh gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend/dist 
+          folder: instagram-frontend/dist 
           branch: gh-pages 
