@@ -54,7 +54,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
   // FIX CUỘN TRANG: Nếu có vị trí cũ (lúc bấm nút Back), thì giữ nguyên vị trí đó. 
   // Nếu là mở trang mới thì mới cuộn lên top: 0
