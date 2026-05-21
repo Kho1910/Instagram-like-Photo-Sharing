@@ -1,4 +1,5 @@
 const userService = require('../services/userService')
+const mediaService = require('../services/mediaService')
 
 const getProfile = async (req, res) => {
     try {
@@ -49,7 +50,7 @@ const unfollow = async (req, res) => {
 const getUserPosts = async (req, res) => {
 	try {
 		const userId = parseInt(req.params.id);
-		const limit = parseInt(req.params.limit) || 10;
+		const limit = parseInt(req.query.limit) || 10;
 		const cursorId = req.query.cursorId ? parseInt(req.query.cursorId) : null;
 
 		const result = await userService.getUserPosts(userId, limit, cursorId);
@@ -67,13 +68,10 @@ const getUserPosts = async (req, res) => {
 
 const getAvatarUploadSignature = async (req, res) => {
 	try {
-		const userId = parseInt(req.params.id);
-		const signature = await mediaService.getSignature(userId);
-
-		const avatarSignature = {
-			...signature,
+		const userId = parseInt(req.user.id);
+		const avatarSignature = await mediaService.getSignature(userId, {
 			folder: `instar/users/${userId}/avatar`,
-		};
+		});
 
 		return res.status(200).json({
 			message: 'Lấy signature thành công',
@@ -101,7 +99,7 @@ const updateAvatar = async (req, res) => {
 		await mediaService.confirmMedia(userId, publicId, 'image');
 
 		const updatedUser = await userService.updateProfile(userId, {
-			avatar_url: publicId
+			avatar_url: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`
 		});
 
 		return res.status(200).json({
@@ -142,4 +140,3 @@ module.exports = {
     updateAvatar,
     updateProfile,
 }
-

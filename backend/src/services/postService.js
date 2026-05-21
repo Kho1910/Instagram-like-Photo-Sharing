@@ -3,10 +3,10 @@ const cloudinary = require('../config/cloudnary')
 const notificationService = require('./notificationService')
 
 
-const createPost = async ( userId, postData ) => {
-    const user = await prisma.users.findFirst({ where: { id: userId }})
-    if(!user) {
-        throw new Error ('Không tồn tại user.')
+const createPost = async (userId, postData) => {
+    const user = await prisma.users.findFirst({ where: { id: userId } })
+    if (!user) {
+        throw new Error('Không tồn tại user.')
     }
 
     const existedMediaCount = await prisma.medias.count({
@@ -18,7 +18,7 @@ const createPost = async ( userId, postData ) => {
     });
 
     if (existedMediaCount !== postData.mediaIds.length) {
-        throw new Error ('Danh sách media không hợp lệ');
+        throw new Error('Danh sách media không hợp lệ');
     }
 
     const newPost = await prisma.$transaction(async (tx) => {
@@ -50,7 +50,7 @@ const createPost = async ( userId, postData ) => {
     });
 
     if (!newPost) {
-        throw new Error ('Tạo post thất bại.');
+        throw new Error('Tạo post thất bại.');
     }
 
     try {
@@ -64,7 +64,7 @@ const createPost = async ( userId, postData ) => {
     }
 }
 
-const deletePost = async ( userId, postId ) => {
+const deletePost = async (userId, postId) => {
     const post = await prisma.posts.findFirst({
         where: {
             id: postId,
@@ -80,13 +80,13 @@ const deletePost = async ( userId, postId ) => {
     })
 
     if (!post) {
-        throw new Error ('Không thấy post cần xóa.');
+        throw new Error('Không thấy post cần xóa.');
     }
 
     const publicIds = post.medias.map((m) => m.public_id);
-    try {      
+    try {
         // Xóa ảnh trên cloudinary
-        await cloudinary.api.delete_resources( publicIds, {
+        await cloudinary.api.delete_resources(publicIds, {
             invalidate: true // Xóa ngay lập tức
         })
 
@@ -103,12 +103,12 @@ const deletePost = async ( userId, postId ) => {
 
     } catch (error) {
         throw error;
-    }    
+    }
 }
 
 
 
-const getComments = async ( postId, lastId ) => {
+const getComments = async (postId, lastId) => {
     const LIMIT = 20; // Lấy 20 comment 1 lần
     const comments = await prisma.comments.findMany({
         where: {
@@ -129,7 +129,7 @@ const getComments = async ( postId, lastId ) => {
             id: true,
             content: true,
             created_at: true,
-            
+
             user: {
                 select: {
                     id: true,
@@ -141,7 +141,7 @@ const getComments = async ( postId, lastId ) => {
         }
     })
 
-    if(comments.length === 0) return [];
+    if (comments.length === 0) return [];
 
     return {
         comments,
@@ -174,15 +174,73 @@ const likePost = async (userId, postId) => {
 }
 
 const unlikePost = async (userId, postId) => {
-    return await prisma.likes.delete({
+    // use deleteMany to avoid throwing if the like doesn't exist
+    const res = await prisma.likes.deleteMany({
+        where: { user_id: userId, post_id: postId }
+    })
+    return res // { count: number }
+}
+
+const getPost = async (userId, postId) => {
+    const post = await prisma.posts.findUnique({
+        where: { id: postId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    full_name: true,
+                    avatar_url: true
+                }
+            },
+            medias: {
+                select: {
+                    id: true,
+                    public_id: true,
+                    resource_type: true
+                }
+            },
+            _count: {
+                select: {
+                    likes: true,
+                    comments: true,
+                    views: true
+                }
+            }
+        }
+    });
+
+    if (!post) {
+        throw new Error('Không tìm thấy bài đăng.');
+    }
+
+    const liked = !!(await prisma.likes.findUnique({
         where: {
             user_id_post_id: {
                 user_id: userId,
                 post_id: postId
             }
         }
-    });
-}
+    }));
+
+    const isFollowing = post.user_id !== userId && !!(await prisma.follows.findUnique({
+        where: {
+            follower_id_following_id: {
+                follower_id: userId,
+                following_id: post.user_id
+            }
+        }
+    }));
+
+    return {
+        ...post,
+        is_liked: liked,
+        is_following: isFollowing,
+        like_count: post._count?.likes ?? 0,
+        comment_count: post._count?.comments ?? 0,
+        view_count: post._count?.views ?? 0,
+    };
+};
 
 const createComment = async (userId, postId, commentData) => {
     const post = await prisma.posts.findUnique({
@@ -250,9 +308,9 @@ const deleteComment = async (userId, postId, commentId) => {
     return { success: true };
 }
 
-const viewPost = async ( userId, postId ) => {
+const viewPost = async (userId, postId) => {
     const viewService = require('./viewService');
-    
+
     const view = await viewService.recordView(userId, postId);
 
     return {
