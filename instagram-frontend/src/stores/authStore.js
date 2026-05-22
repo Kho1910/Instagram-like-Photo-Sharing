@@ -1,4 +1,3 @@
-// frontend/src/stores/authStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '@/services/authService'
@@ -30,14 +29,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(uname, email, password, full_name) {
     const res = await authService.register(uname, email, password, full_name)
-    _setAuth(res.token, res.user)
-    try {
-      const { userService } = await import('@/services/userService')
-      const profile = await userService.getProfile(res.user.id)
-      _setAuth(res.token, { ...res.user, ...profile })
-    } catch(e) {
-      console.warn('Không lấy được profile sau register:', e.message)
-    }
+    // Register chỉ trả user data, không trả token
+    // Không lưu auth, yêu cầu user phải đăng nhập thủ công
     return res
   }
 
