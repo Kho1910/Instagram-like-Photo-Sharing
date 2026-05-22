@@ -1,4 +1,3 @@
-// frontend/src/services/authService.js
 import api from '@/api'
 
 export const authService = {
@@ -11,9 +10,8 @@ export const authService = {
   async register(username, email, password, full_name) {
     const { data } = await api.post('/auth/register', { username, email, password, full_name })
     // Backend trả: { message, user } — không có token
-    // Cần login lại sau khi register để lấy token
-    const loginResult = await this.login(email, password)
-    return loginResult
+    // Người dùng phải đăng nhập sau khi đăng ký
+    return { user: data.user }
   },
 
   async getMe() {
