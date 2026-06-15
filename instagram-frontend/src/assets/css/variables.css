@@ -1,0 +1,30 @@
+:root {
+  /* Instagram-like dark theme */
+  --color-primary: #e1306c;
+  --color-primary-hover: #d63447;
+  --color-accent: #405de6;
+  --color-danger: #e53e3e;
+  --color-success: #31a24c;
+  --color-warning: #ffa502;
+  /* Dark backgrounds */
+  --color-bg: #000000;
+  --color-surface: #121212;
+  --color-surface-hover: #1a1a1a;
+  --color-border: #262626;
+  /* Text colors */
+  --color-text: #ffffff;
+  --color-text-muted: #a8a8a8;
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+  /* Shadows for dark theme */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, .3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, .4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, .5);
+  /* Layout */
+  --nav-width: 280px;
+  --nav-width-sm: 72px;
+  --max-content: 970px;
+}

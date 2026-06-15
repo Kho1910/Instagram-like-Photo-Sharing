@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id                      Int             @id @default(autoincrement()) @db.UnsignedInt
+  username                String          @unique(map: "username") @db.VarChar(50)
+  full_name               String?         @db.VarChar(100)
+  email                   String          @unique(map: "email") @db.VarChar(100)
+  password_hash           String          @db.VarChar(255)
+  bio                     String?         @db.Text
+  avatar_url              String?         @db.VarChar(255)
+  created_at              DateTime?       @default(now()) @db.Timestamp(0)
+  bookmarks               bookmarks[]
+  comments                comments[]
+  followedBy              follows[]       @relation("follows_following")
+  following               follows[]       @relation("follows_follower")
+  likes                   likes[]
+  notificationsReceived   notifications[] @relation("notifications_recipient")
+  notificationsSent       notifications[] @relation("notifications_sender")
+  medias                  medias[]
+  posts                   posts[]
+  views                   views[]
+  otp_code                String?
+  otp_expires_at          DateTime?
+  @@index([full_name], map: "idx_full_name")
+}
+
+/* Các file như Ảnh, Video, Nhạc,... */
+model medias {
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id         Int                     @db.UnsignedInt
+  post_id        Int?                    @db.UnsignedInt
+  resource_type   media_type
+  public_id       String                  @unique // Lưu Cloudinary id
+  resolution_tier photos_resolution_tier? @default(original)
+  status          media_status?          @default(processing)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+  
+  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post           posts?                   @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "idx_medias_created_at")
+  @@index([user_id], map: "idx_medias_user_id")
+}
+
+model posts { // Bài đăng, có thể chứa nhiều ảnh. Like và Comment sẽ cho cả bài đăng chứ không phải từng ảnh
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id         Int                     @db.UnsignedInt
+
+  title           String?
+  content         String?
+  status          post_status?          @default(processing)
+  created_at      DateTime?               @default(now()) @db.Timestamp(0)
+  bookmarks       bookmarks[]
+  comments        comments[]
+  likes           likes[]
+  notifications   notifications[]
+
+  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  medias         medias[]
+  views           views[]
+
+  @@index([created_at], map: "idx_posts_created_at")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_posts_user_id")
+}
+
+/* Thông tin xem post */
+model views {
+  viewer_id Int @db.UnsignedInt
+  post_id Int @db.UnsignedInt
+  created_at DateTime @default(now())
+
+  viewer  users   @relation(fields: [viewer_id], references: [id], onDelete: Cascade)
+  post    posts   @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@id([viewer_id, post_id])
+  @@index([viewer_id])
+}
+
+model bookmarks {
+  user_id    Int       @db.UnsignedInt
+  post_id   Int       @db.UnsignedInt
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post     posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([user_id, post_id])
+  @@index([post_id], map: "post_id")
+}
+
+model comments {
+  id            Int             @id @default(autoincrement()) @db.UnsignedInt
+  user_id       Int             @db.UnsignedInt
+  post_id       Int              @db.UnsignedInt
+  content       String          @db.Text
+  created_at    DateTime?       @default(now()) @db.Timestamp(0)
+  user         users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post          posts             @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  notifications notifications[]
+
+  @@index([post_id, created_at], map: "idx_comments_photo_time")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_comments_user_id")
+}
+
+model follows {
+  follower_id                                                                                  Int       @db.UnsignedInt
+  following_id                                                                                 Int       @db.UnsignedInt
+  created_at                                                                                   DateTime? @default(now()) @db.Timestamp(0)
+  follower                                                                                     users @relation("follows_follower", fields: [follower_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  following                                                                                    users @relation("follows_following", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([follower_id, following_id])
+  @@index([following_id], map: "idx_following_id")
+}
+
+model likes {
+  user_id     Int       @db.UnsignedInt
+  post_id     Int       @db.UnsignedInt
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post        posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([user_id, post_id])
+  @@index([post_id], map: "idx_likes_photo_id")
+}
+
+model notifications {
+  id                                                                                                       Int                @id @default(autoincrement()) @db.UnsignedInt
+  recipient_id                                                                                             Int                @db.UnsignedInt
+  sender_id                                                                                                Int                @db.UnsignedInt
+  type                                                                                                     notifications_type
+  post_id                                                                                                 Int?               @db.UnsignedInt
+  comment_id                                                                                               Int?               @db.UnsignedInt
+  is_read                                                                                                  Boolean?           @default(false)
+  created_at                                                                                               DateTime?          @default(now()) @db.Timestamp(0)
+  recipient                                                                                                users @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  sender                                                                                                   users @relation("notifications_sender", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  post                                                                                                   posts?            @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "3")
+  comments                                                                                                 comments?          @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "4")
+
+  @@index([comment_id], map: "comment_id")
+  @@index([recipient_id, is_read, created_at], map: "idx_notifications_recipient_read")
+  @@index([post_id], map: "post_id")
+  @@index([sender_id], map: "sender_id")
+}
+
+enum media_type {
+  image
+}
+
+enum notifications_type {
+  like
+  comment
+  follow
+}
+
+enum photos_resolution_tier {
+  original
+  medium
+  small
+}
+
+enum media_status {
+  processing
+  done
+  error
+}
+
+enum post_status {
+  processing
+  done
+  error
+}
